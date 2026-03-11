@@ -23,7 +23,7 @@ export default function Login() {
   try {
     setMessage("Connecting...");
 
-    const response = await fetch("http://192.168.5.119:5123/api/auth/login", {
+    const response = await fetch("http://172.20.10.2:5123/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,7 +47,7 @@ export default function Login() {
 
       // Redirect based on role
       if (data.role === "Admin") {
-        router.replace("/admin/dashboard");
+        router.replace("/admin/reports");
       } else {
         router.replace("/(tabs)/dashboard");
       }
