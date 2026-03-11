@@ -15,15 +15,18 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+
+
+  
   const login = async () => {
   try {
-
     setMessage("Connecting...");
 
-    const response = await fetch("http://172.20.10.2:5123/api/auth/login", {
+    const response = await fetch("http://192.168.5.119:5123/api/auth/login", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true"
       },
       body: JSON.stringify({
         phoneNumber: email,
@@ -31,15 +34,36 @@ export default function Login() {
       })
     });
 
+    const text = await response.text();
+    
     console.log("Status:", response.status);
+    console.log("Response:", text);
 
-    const data = await response.json();
-    console.log("Response:", data);
-
-    if (response.status === 200) {
+    if (response.ok) {
+      const data = JSON.parse(text);
       setMessage("Login Successful ✅");
+      console.log("User ID:", data.userId);
     } else {
-      setMessage("Invalid Phone or Password ❌");
+      // Show exact message from backend
+      switch (response.status) {
+        case 401:
+          if (text.toLowerCase().includes("user not found")) {
+            setMessage("Phone number not registered ❌");
+          } else if (text.toLowerCase().includes("password")) {
+            setMessage("Incorrect password ❌");
+          } else {
+            setMessage(text || "Login Failed ❌");
+          }
+          break;
+        case 400:
+          setMessage("Invalid input ❌");
+          break;
+        case 500:
+          setMessage("Server error, try again ❌");
+          break;
+        default:
+          setMessage(text || "Login Failed ❌");
+      }
     }
 
   } catch (error) {
@@ -47,7 +71,6 @@ export default function Login() {
     setMessage("API Connection Failed ❌");
   }
 };
-
   return (
     <KeyboardAvoidingView 
       style={styles.container}
