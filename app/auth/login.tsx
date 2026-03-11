@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -35,7 +36,6 @@ export default function Login() {
     });
 
     const text = await response.text();
-    
     console.log("Status:", response.status);
     console.log("Response:", text);
 
@@ -43,16 +43,25 @@ export default function Login() {
       const data = JSON.parse(text);
       setMessage("Login Successful ✅");
       console.log("User ID:", data.userId);
+      console.log("Role:", data.role);
+
+      // Redirect based on role
+      if (data.role === "Admin") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/(tabs)/dashboard");
+      }
+
     } else {
-      // Show exact message from backend
+      const text2 = text;
       switch (response.status) {
         case 401:
-          if (text.toLowerCase().includes("user not found")) {
+          if (text2.toLowerCase().includes("user not found")) {
             setMessage("Phone number not registered ❌");
-          } else if (text.toLowerCase().includes("password")) {
+          } else if (text2.toLowerCase().includes("password")) {
             setMessage("Incorrect password ❌");
           } else {
-            setMessage(text || "Login Failed ❌");
+            setMessage(text2 || "Login Failed ❌");
           }
           break;
         case 400:
@@ -62,7 +71,7 @@ export default function Login() {
           setMessage("Server error, try again ❌");
           break;
         default:
-          setMessage(text || "Login Failed ❌");
+          setMessage(text2 || "Login Failed ❌");
       }
     }
 
