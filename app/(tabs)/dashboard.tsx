@@ -1,342 +1,437 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
+  Keyboard,
+  Modal,
   ScrollView,
-  StatusBar,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  TouchableWithoutFeedback,
+  View
 } from "react-native";
 
-// ─── Icons as simple text/emoji (no extra libs needed) ───────────────────────
-const TAB_ICONS: Record<string, string> = {
-  entry: "🚗",
-  exit: "🅿️",
-  settings: "⚙️",
-};
-
-// ─── Entry Tab ────────────────────────────────────────────────────────────────
-function EntryTab() {
-  const [vehicleNumber, setVehicleNumber] = useState("");
+export default function EntryTab() {
+  // Vehicle number parts
+  const [stateCode, setStateCode] = useState("KL");
+  const [districtCode, setDistrictCode] = useState("");
+  const [seriesCode, setSeriesCode] = useState("");
+  const [number, setNumber] = useState("");
+  
   const [vehicleType, setVehicleType] = useState("Car");
   const [driverName, setDriverName] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  
+  // Dropdown state
+  const [stateDropdownVisible, setStateDropdownVisible] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const stateButtonRef = useRef<any>(null);
+  
+  // Advance payment modal states
+  const [advanceModalVisible, setAdvanceModalVisible] = useState(false);
+  const [advanceAmount, setAdvanceAmount] = useState("");
+  const [tempVehicleData, setTempVehicleData] = useState<any>(null);
+
+  // Keyboard state
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   const VEHICLE_TYPES = ["Car", "Bike", "Truck", "Van"];
+  
+  // Only 4 state codes as requested
+  const STATE_CODES = ["KL", "TN", "KA", "AP"];
 
-  const handleSubmit = () => {
-    if (!vehicleNumber.trim()) {
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      (e) => {
+        setKeyboardOffset(e.endCoordinates.height);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setKeyboardOffset(0);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
+  // Measure button position for dropdown - FIXED VERSION
+  const measureButtonPosition = () => {
+    if (stateButtonRef.current) {
+      stateButtonRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+        setDropdownPosition({
+          top: y + height + 2,
+          left: x,
+          width: width,
+        });
+      });
+    }
+  };
+
+  const handleStateButtonPress = () => {
+    Keyboard.dismiss();
+    // Small delay to ensure keyboard is dismissed before measuring
+    setTimeout(() => {
+      measureButtonPosition();
+      setStateDropdownVisible(true);
+    }, 100);
+  };
+
+  const handleStateSelect = (code: string) => {
+    setStateCode(code);
+    setStateDropdownVisible(false);
+  };
+
+  const handleCheckIn = () => {
+    Keyboard.dismiss();
+    if (!number.trim()) {
       Alert.alert("Required", "Please enter vehicle number");
       return;
     }
-    // TODO: call your API here
+
+    // Validate district and series codes (optional but should be letters if entered)
+    if (districtCode && !/^[A-Z]{1,2}$/.test(districtCode)) {
+      Alert.alert("Invalid", "District code should contain only letters");
+      return;
+    }
+    if (seriesCode && !/^[A-Z]{1,2}$/.test(seriesCode)) {
+      Alert.alert("Invalid", "Series code should contain only letters");
+      return;
+    }
+
+    // Construct full vehicle number (use placeholder values if empty)
+    const finalDistrictCode = districtCode || "XX";
+    const finalSeriesCode = seriesCode || "XX";
+    
+    const fullVehicleNumber = `${stateCode} ${finalDistrictCode} ${finalSeriesCode} ${number}`;
+    
+    // Store vehicle data temporarily
+    setTempVehicleData({
+      vehicleNumber: fullVehicleNumber,
+      vehicleType,
+      driverName: driverName.trim() || undefined,
+    });
+    
+    // Show advance payment modal
+    setAdvanceModalVisible(true);
+  };
+
+  const handleAdvanceSubmit = () => {
+    Keyboard.dismiss();
+    if (!advanceAmount.trim()) {
+      Alert.alert("Required", "Please enter advance amount");
+      return;
+    }
+
+    const amount = parseFloat(advanceAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Invalid", "Please enter a valid amount");
+      return;
+    }
+
+    // Here you would call your API with both vehicle data and advance amount
+    console.log("Vehicle Data:", tempVehicleData);
+    console.log("Advance Amount:", amount);
+
     setSubmitted(true);
     setTimeout(() => {
-      setVehicleNumber("");
+      // Reset all fields
+      setStateCode("KL");
+      setDistrictCode("");
+      setSeriesCode("");
+      setNumber("");
       setDriverName("");
       setVehicleType("Car");
+      setAdvanceAmount("");
+      setAdvanceModalVisible(false);
+      setTempVehicleData(null);
       setSubmitted(false);
     }, 2000);
   };
 
+  const closeAdvanceModal = () => {
+    setAdvanceModalVisible(false);
+    setAdvanceAmount("");
+    setTempVehicleData(null);
+  };
+
+  // Close dropdown when tapping outside
+  const handleOutsidePress = () => {
+    if (stateDropdownVisible) {
+      setStateDropdownVisible(false);
+    }
+    Keyboard.dismiss();
+  };
+
+  // Format input to only allow letters and uppercase
+  const formatLetterInput = (text: string) => {
+    return text.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+  };
+
+  // Format number input to only allow digits
+  const formatNumberInput = (text: string) => {
+    return text.replace(/[^0-9]/g, '').slice(0, 4);
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.tabContent}>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>🚗 Vehicle Entry</Text>
-        <Text style={styles.cardSubtitle}>Log a new vehicle entering the parking</Text>
+    <TouchableWithoutFeedback onPress={handleOutsidePress}>
+      <View style={{ flex: 1 }}>
+        <ScrollView 
+          contentContainerStyle={[
+            styles.tabContent,
+            { paddingBottom: keyboardOffset > 0 ? keyboardOffset + 20 : 32 }
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🚗 Vehicle Entry</Text>
+            <Text style={styles.cardSubtitle}>Log a new vehicle entering the parking</Text>
 
-        <Text style={styles.fieldLabel}>Vehicle Number *</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="e.g. KL 01 AB 1234"
-          placeholderTextColor="#aaa"
-          value={vehicleNumber}
-          onChangeText={setVehicleNumber}
-          autoCapitalize="characters"
-        />
+            <Text style={styles.fieldLabel}>Vehicle Number *</Text>
+            
+            {/* Vehicle Number Input Row */}
+            <View style={styles.vehicleNumberRow}>
+              {/* State Code Dropdown Button */}
+              <TouchableOpacity 
+                ref={stateButtonRef}
+                style={styles.vehicleNumberPart}
+                onPress={handleStateButtonPress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.vehicleNumberPartText}>{stateCode}</Text>
+                <Text style={styles.dropdownIcon}>▼</Text>
+              </TouchableOpacity>
 
-        <Text style={styles.fieldLabel}>Driver Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter driver name (optional)"
-          placeholderTextColor="#aaa"
-          value={driverName}
-          onChangeText={setDriverName}
-        />
+              {/* District Code Input - Only Letters */}
+              <TextInput
+                style={styles.vehicleNumberPart}
+                value={districtCode}
+                onChangeText={(text) => setDistrictCode(formatLetterInput(text))}
+                maxLength={2}
+                placeholder="XX"
+                placeholderTextColor="#999"
+                autoCapitalize="characters"
+                keyboardType="default"
+                onFocus={() => setStateDropdownVisible(false)}
+              />
 
-        <Text style={styles.fieldLabel}>Vehicle Type</Text>
-        <View style={styles.typeRow}>
-          {VEHICLE_TYPES.map((type) => (
+              {/* Series Code Input - Only Letters */}
+              <TextInput
+                style={styles.vehicleNumberPart}
+                value={seriesCode}
+                onChangeText={(text) => setSeriesCode(formatLetterInput(text))}
+                maxLength={2}
+                placeholder="XX"
+                placeholderTextColor="#999"
+                autoCapitalize="characters"
+                keyboardType="default"
+                onFocus={() => setStateDropdownVisible(false)}
+              />
+
+              {/* Number Input - Only Numbers */}
+              <TextInput
+                style={[styles.vehicleNumberPart, styles.vehicleNumberInput]}
+                value={number}
+                onChangeText={(text) => setNumber(formatNumberInput(text))}
+                placeholder="0000"
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                maxLength={4}
+                onFocus={() => setStateDropdownVisible(false)}
+              />
+            </View>
+
+            {/* State Dropdown - positioned absolutely */}
+            {stateDropdownVisible && (
+              <>
+                {/* Overlay to capture touches outside */}
+                <TouchableWithoutFeedback onPress={() => setStateDropdownVisible(false)}>
+                  <View style={styles.dropdownOverlay} />
+                </TouchableWithoutFeedback>
+                
+                {/* Dropdown */}
+                <View 
+                  style={[
+                    styles.stateDropdown,
+                    {
+                      top: dropdownPosition.top,
+                      left: dropdownPosition.left,
+                      width: dropdownPosition.width,
+                    }
+                  ]}
+                >
+                  {STATE_CODES.map((code) => (
+                    <TouchableOpacity
+                      key={code}
+                      style={[
+                        styles.stateOption,
+                        code === stateCode && styles.stateOptionActive
+                      ]}
+                      onPress={() => handleStateSelect(code)}
+                    >
+                      <Text style={[
+                        styles.stateOptionText,
+                        code === stateCode && styles.stateOptionTextActive
+                      ]}>
+                        {code}
+                      </Text>
+                      {code === stateCode && (
+                        <Text style={styles.checkIcon}>✓</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            <Text style={styles.fieldLabel}>Driver Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter driver name (optional)"
+              placeholderTextColor="#aaa"
+              value={driverName}
+              onChangeText={setDriverName}
+              onFocus={() => setStateDropdownVisible(false)}
+            />
+
+            <Text style={styles.fieldLabel}>Vehicle Type</Text>
+            <View style={styles.typeRow}>
+              {VEHICLE_TYPES.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[styles.typeChip, vehicleType === type && styles.typeChipActive]}
+                  onPress={() => {
+                    setVehicleType(type);
+                    setStateDropdownVisible(false);
+                  }}
+                >
+                  <Text style={[styles.typeChipText, vehicleType === type && styles.typeChipTextActive]}>
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity
-              key={type}
-              style={[styles.typeChip, vehicleType === type && styles.typeChipActive]}
-              onPress={() => setVehicleType(type)}
+              style={[styles.submitButton, submitted && styles.submitButtonSuccess]}
+              onPress={handleCheckIn}
+              disabled={submitted}
             >
-              <Text style={[styles.typeChipText, vehicleType === type && styles.typeChipTextActive]}>
-                {type}
+              <Text style={styles.submitButtonText}>
+                {submitted ? "✅ Checked In!" : "Check In"}
               </Text>
             </TouchableOpacity>
-          ))}
-        </View>
-
-        <TouchableOpacity
-          style={[styles.submitButton, submitted && styles.submitButtonSuccess]}
-          onPress={handleSubmit}
-          disabled={submitted}
-        >
-          <Text style={styles.submitButtonText}>
-            {submitted ? "✅ Entry Logged!" : "Log Entry"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>📋 Today's Summary</Text>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNumber}>24</Text>
-            <Text style={styles.summaryLabel}>Entries</Text>
           </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNumber}>18</Text>
-            <Text style={styles.summaryLabel}>Exits</Text>
-          </View>
-          <View style={styles.summaryDivider} />
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryNumber}>6</Text>
-            <Text style={styles.summaryLabel}>Parked</Text>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
-  );
-}
 
-// ─── Exit Tab ─────────────────────────────────────────────────────────────────
-function ExitTab() {
-  const [search, setSearch] = useState("");
-
-  // Mock data — replace with API call
-  const parkedVehicles = [
-    { id: 1, number: "KL 01 AB 1234", type: "Car", entry: "09:30 AM", driver: "Rahul" },
-    { id: 2, number: "KL 07 CD 5678", type: "Bike", entry: "10:15 AM", driver: "Priya" },
-    { id: 3, number: "KL 12 EF 9012", type: "Van", entry: "11:00 AM", driver: "Anil" },
-    { id: 4, number: "KL 04 GH 3456", type: "Truck", entry: "11:45 AM", driver: "Suresh" },
-  ];
-
-  const filtered = parkedVehicles.filter(
-    (v) =>
-      v.number.toLowerCase().includes(search.toLowerCase()) ||
-      v.driver.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleExit = (vehicle: typeof parkedVehicles[0]) => {
-    Alert.alert(
-      "Confirm Exit",
-      `Process exit for ${vehicle.number}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Confirm Exit",
-          style: "destructive",
-          onPress: () => Alert.alert("✅ Exit Processed", `${vehicle.number} has exited`),
-        },
-      ]
-    );
-  };
-
-  return (
-    <ScrollView contentContainerStyle={styles.tabContent}>
-      <TextInput
-        style={[styles.input, { marginBottom: 16 }]}
-        placeholder="🔍 Search by vehicle number or driver..."
-        placeholderTextColor="#aaa"
-        value={search}
-        onChangeText={setSearch}
-      />
-
-      {filtered.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No vehicles found</Text>
-        </View>
-      ) : (
-        filtered.map((vehicle) => (
-          <View key={vehicle.id} style={styles.vehicleCard}>
-            <View style={styles.vehicleInfo}>
-              <Text style={styles.vehicleNumber}>{vehicle.number}</Text>
-              <View style={styles.vehicleMeta}>
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{vehicle.type}</Text>
-                </View>
-                <Text style={styles.vehicleDetail}>👤 {vehicle.driver}</Text>
-                <Text style={styles.vehicleDetail}>🕐 {vehicle.entry}</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📋 Today's Summary</Text>
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryNumber}>24</Text>
+                <Text style={styles.summaryLabel}>Entries</Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryNumber}>18</Text>
+                <Text style={styles.summaryLabel}>Exits</Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryNumber}>6</Text>
+                <Text style={styles.summaryLabel}>Parked</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.exitButton} onPress={() => handleExit(vehicle)}>
-              <Text style={styles.exitButtonText}>Exit</Text>
-            </TouchableOpacity>
           </View>
-        ))
-      )}
-    </ScrollView>
+        </ScrollView>
+
+        {/* Advance Payment Modal */}
+        <Modal
+          visible={advanceModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closeAdvanceModal}
+        >
+          <TouchableWithoutFeedback onPress={closeAdvanceModal}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                <View style={[
+                  styles.modalContent,
+                  keyboardOffset > 0 && { marginBottom: keyboardOffset / 2 }
+                ]}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Advance Payment</Text>
+                    <TouchableOpacity onPress={closeAdvanceModal} style={styles.modalCloseButton}>
+                      <Text style={styles.modalCloseIcon}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.modalBody}>
+                    {tempVehicleData && (
+                      <View style={styles.vehiclePreview}>
+                        <Text style={styles.previewLabel}>Vehicle Number</Text>
+                        <Text style={styles.previewValue}>{tempVehicleData.vehicleNumber}</Text>
+                        <View style={styles.previewDivider} />
+                        <Text style={styles.previewLabel}>Vehicle Type</Text>
+                        <Text style={styles.previewValue}>{tempVehicleData.vehicleType}</Text>
+                        {tempVehicleData.driverName && (
+                          <>
+                            <View style={styles.previewDivider} />
+                            <Text style={styles.previewLabel}>Driver</Text>
+                            <Text style={styles.previewValue}>{tempVehicleData.driverName}</Text>
+                          </>
+                        )}
+                      </View>
+                    )}
+
+                    <Text style={styles.modalLabel}>Advance Amount (₹) *</Text>
+                    <TextInput
+                      style={styles.modalInput}
+                      placeholder="Enter amount"
+                      placeholderTextColor="#999"
+                      value={advanceAmount}
+                      onChangeText={setAdvanceAmount}
+                      keyboardType="numeric"
+                      autoFocus={true}
+                    />
+
+                    <View style={styles.modalActions}>
+                      <TouchableOpacity 
+                        style={styles.modalCancelButton}
+                        onPress={closeAdvanceModal}
+                      >
+                        <Text style={styles.modalCancelText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.modalSubmitButton}
+                        onPress={handleAdvanceSubmit}
+                      >
+                        <Text style={styles.modalSubmitText}>Check In</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
-// ─── Settings Tab ─────────────────────────────────────────────────────────────
-function SettingsTab({ onLogout }: { onLogout: () => void }) {
-  const [notifications, setNotifications] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(false);
-  const [autoLogout, setAutoLogout] = useState(true);
-
-  const settingItems = [
-    { label: "Push Notifications", value: notifications, onChange: setNotifications },
-    { label: "Sound Effects", value: soundEnabled, onChange: setSoundEnabled },
-    { label: "Auto Logout (30 min)", value: autoLogout, onChange: setAutoLogout },
-  ];
-
-  return (
-    <ScrollView contentContainerStyle={styles.tabContent}>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>👤 Account</Text>
-        <View style={styles.profileRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>S</Text>
-          </View>
-          <View>
-            <Text style={styles.profileName}>Staff Member</Text>
-            <Text style={styles.profileRole}>Parking Staff</Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>🔔 Preferences</Text>
-        {settingItems.map((item, index) => (
-          <View
-            key={item.label}
-            style={[styles.settingRow, index < settingItems.length - 1 && styles.settingRowBorder]}
-          >
-            <Text style={styles.settingLabel}>{item.label}</Text>
-            <Switch
-              value={item.value}
-              onValueChange={item.onChange}
-              trackColor={{ false: "#e0e0e0", true: "#DC2626" }}
-              thumbColor="#fff"
-            />
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>ℹ️ App Info</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Version</Text>
-          <Text style={styles.infoValue}>1.0.0</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>App</Text>
-          <Text style={styles.infoValue}>SafePark</Text>
-        </View>
-      </View>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
-        <Text style={styles.logoutButtonText}>🚪 Logout</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-}
-
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
-export default function StaffDashboard() {
-  const [activeTab, setActiveTab] = useState<"entry" | "exit" | "settings">("entry");
-
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: () => router.replace("/"),
-      },
-    ]);
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#DC2626" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>SafePark</Text>
-          <Text style={styles.headerSubtitle}>Staff Dashboard</Text>
-        </View>
-        <TouchableOpacity style={styles.headerLogout} onPress={handleLogout}>
-          <Text style={styles.headerLogoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Tab Content */}
-      <View style={styles.content}>
-        {activeTab === "entry" && <EntryTab />}
-        {activeTab === "exit" && <ExitTab />}
-        {activeTab === "settings" && <SettingsTab onLogout={handleLogout} />}
-      </View>
-
-      {/* Bottom Tab Bar */}
-      <View style={styles.tabBar}>
-        {(["entry", "exit", "settings"] as const).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={styles.tabIcon}>{TAB_ICONS[tab]}</Text>
-            <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-            {activeTab === tab && <View style={styles.tabIndicator} />}
-          </TouchableOpacity>
-        ))}
-      </View>
-    </SafeAreaView>
-  );
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f4f4f4" },
-
-  // Header
-  header: {
-    backgroundColor: "#DC2626",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  tabContent: { 
+    padding: 16, 
+    paddingBottom: 32,
+    flexGrow: 1,
   },
-  headerTitle: { color: "#fff", fontSize: 20, fontWeight: "800" },
-  headerSubtitle: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginTop: 2 },
-  headerLogout: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  headerLogoutText: { color: "#fff", fontSize: 13, fontWeight: "600" },
-
-  // Content
-  content: { flex: 1 },
-  tabContent: { padding: 16, paddingBottom: 32 },
-
-  // Cards
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -350,8 +445,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 16, fontWeight: "700", color: "#1a1a1a", marginBottom: 4 },
   cardSubtitle: { fontSize: 13, color: "#888", marginBottom: 16 },
-
-  // Form
   fieldLabel: { fontSize: 13, fontWeight: "600", color: "#444", marginBottom: 6, marginTop: 4 },
   input: {
     borderWidth: 1.5,
@@ -361,6 +454,86 @@ const styles = StyleSheet.create({
     fontSize: 15,
     backgroundColor: "#fafafa",
     color: "#222",
+  },
+  vehicleNumberRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 16,
+  },
+  vehicleNumberPart: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: "#e8e8e8",
+    borderRadius: 12,
+    padding: 13,
+    fontSize: 15,
+    backgroundColor: "#fafafa",
+    color: "#222",
+    textAlign: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  vehicleNumberInput: {
+    flex: 2,
+  },
+  vehicleNumberPartText: {
+    fontSize: 15,
+    color: "#222",
+  },
+  dropdownIcon: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 4,
+  },
+  // Dropdown overlay
+  dropdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
+  },
+  // State Dropdown Styles
+  stateDropdown: {
+    position: "absolute",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e8e8e8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  stateOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  stateOptionActive: {
+    backgroundColor: "rgba(220, 38, 38, 0.05)",
+  },
+  stateOptionText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  stateOptionTextActive: {
+    color: "#DC2626",
+    fontWeight: "600",
+  },
+  checkIcon: {
+    fontSize: 16,
+    color: "#DC2626",
+    fontWeight: "bold",
   },
   typeRow: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginBottom: 4 },
   typeChip: {
@@ -383,118 +556,123 @@ const styles = StyleSheet.create({
   },
   submitButtonSuccess: { backgroundColor: "#16a34a" },
   submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-
-  // Summary
   summaryRow: { flexDirection: "row", justifyContent: "space-around", paddingTop: 8 },
   summaryItem: { alignItems: "center" },
   summaryNumber: { fontSize: 28, fontWeight: "800", color: "#DC2626" },
   summaryLabel: { fontSize: 12, color: "#888", marginTop: 2 },
   summaryDivider: { width: 1, backgroundColor: "#f0f0f0" },
 
-  // Vehicle cards
-  vehicleCard: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  vehicleInfo: { flex: 1 },
-  vehicleNumber: { fontSize: 16, fontWeight: "700", color: "#1a1a1a", marginBottom: 6 },
-  vehicleMeta: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
-  badge: { backgroundColor: "#FEE2E2", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  badgeText: { fontSize: 11, color: "#DC2626", fontWeight: "600" },
-  vehicleDetail: { fontSize: 12, color: "#777" },
-  exitButton: {
-    backgroundColor: "#DC2626",
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 10,
-    marginLeft: 10,
-  },
-  exitButtonText: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  emptyState: { alignItems: "center", paddingVertical: 40 },
-  emptyStateText: { color: "#aaa", fontSize: 16 },
-
-  // Settings
-  profileRow: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 4 },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#DC2626",
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { color: "#fff", fontSize: 20, fontWeight: "800" },
-  profileName: { fontSize: 16, fontWeight: "700", color: "#1a1a1a" },
-  profileRole: { fontSize: 13, color: "#888", marginTop: 2 },
-  settingRow: {
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    width: "90%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-  },
-  settingRowBorder: { borderBottomWidth: 1, borderBottomColor: "#f5f5f5" },
-  settingLabel: { fontSize: 15, color: "#333" },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
+    padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#f5f5f5",
+    borderBottomColor: "#f0f0f0",
   },
-  infoLabel: { fontSize: 14, color: "#888" },
-  infoValue: { fontSize: 14, fontWeight: "600", color: "#333" },
-  logoutButton: {
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#DC2626",
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCloseIcon: {
+    fontSize: 18,
+    color: "#666",
+    fontWeight: "bold",
+  },
+  modalBody: {
+    padding: 20,
+  },
+  vehiclePreview: {
+    backgroundColor: "#f5f5f5",
     padding: 15,
     borderRadius: 12,
-    alignItems: "center",
-    marginTop: 4,
+    marginBottom: 20,
+  },
+  previewLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 2,
+  },
+  previewValue: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 8,
   },
-  logoutButtonText: { color: "#DC2626", fontSize: 16, fontWeight: "700" },
-
-  // Tab Bar
-  tabBar: {
+  previewDivider: {
+    height: 1,
+    backgroundColor: "#ddd",
+    marginVertical: 8,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  modalInput: {
+    borderWidth: 1.5,
+    borderColor: "#e8e8e8",
+    borderRadius: 12,
+    padding: 15,
+    fontSize: 16,
+    backgroundColor: "#fafafa",
+    color: "#222",
+    marginBottom: 20,
+  },
+  modalActions: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-    paddingBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 10,
+    gap: 12,
   },
-  tabItem: {
+  modalCancelButton: {
     flex: 1,
+    padding: 15,
+    borderRadius: 12,
+    backgroundColor: "#f5f5f5",
     alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 4,
-    position: "relative",
   },
-  tabItemActive: {},
-  tabIcon: { fontSize: 22 },
-  tabLabel: { fontSize: 11, color: "#aaa", marginTop: 3, fontWeight: "500" },
-  tabLabelActive: { color: "#DC2626", fontWeight: "700" },
-  tabIndicator: {
-    position: "absolute",
-    top: 0,
-    width: 32,
-    height: 3,
+  modalCancelText: {
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "600",
+  },
+  modalSubmitButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 12,
     backgroundColor: "#DC2626",
-    borderRadius: 2,
+    alignItems: "center",
+  },
+  modalSubmitText: {
+    fontSize: 16,
+    color: "#fff",
+    fontWeight: "600",
   },
 });
