@@ -23,7 +23,7 @@ export default function Login() {
   try {
     setMessage("Connecting...");
 
-    const response = await fetch("http://172.20.10.2:5123/api/auth/login", {
+    const response = await fetch("http://172.20.10.3:5123/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
