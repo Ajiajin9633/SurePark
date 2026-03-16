@@ -16,7 +16,7 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "../../services/api";
@@ -24,6 +24,12 @@ import { API_BASE_URL } from "../../services/api";
 type Location = {
   id: number;
   name: string;
+};
+
+type VehicleType = {
+  id: number;
+  type: string;
+  icon: string;
 };
 
 type TariffSlot = {
@@ -45,33 +51,44 @@ type Tariff = {
 export default function TariffPage() {
   // Form states
   const [vehicleName, setVehicleName] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
+    null,
+  );
   const [tariffSlots, setTariffSlots] = useState<TariffSlot[]>([
-    { id: '1', fromHour: 0, toHour: 1, rate: 0 }
+    { id: "1", fromHour: 0, toHour: 1, rate: 0 },
   ]);
-  
+
   // Data states
   const [locations, setLocations] = useState<Location[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [tariffs, setTariffs] = useState<Tariff[]>([]);
-  
+
   // UI states
   const [loading, setLoading] = useState(false);
   const [fetchingLocations, setFetchingLocations] = useState(true);
+  const [fetchingVehicleTypes, setFetchingVehicleTypes] = useState(true);
   const [fetchingTariffs, setFetchingTariffs] = useState(true);
   const [locationDropdownVisible, setLocationDropdownVisible] = useState(false);
+  const [vehicleTypeDropdownVisible, setVehicleTypeDropdownVisible] =
+    useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedTab, setSelectedTab] = useState<'create' | 'list'>('create');
-  
+  const [selectedTab, setSelectedTab] = useState<"create" | "list">("create");
+
   // Edit states
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTariff, setEditingTariff] = useState<Tariff | null>(null);
   const [editVehicleName, setEditVehicleName] = useState("");
-  const [editSelectedLocation, setEditSelectedLocation] = useState<Location | null>(null);
+  const [editSelectedLocation, setEditSelectedLocation] =
+    useState<Location | null>(null);
   const [editTariffSlots, setEditTariffSlots] = useState<TariffSlot[]>([]);
-  const [editLocationDropdownVisible, setEditLocationDropdownVisible] = useState(false);
+  const [editLocationDropdownVisible, setEditLocationDropdownVisible] =
+    useState(false);
+  const [editVehicleTypeDropdownVisible, setEditVehicleTypeDropdownVisible] =
+    useState(false);
 
   useEffect(() => {
     fetchLocations();
+    fetchVehicleTypes();
     fetchTariffs();
   }, []);
 
@@ -87,17 +104,31 @@ export default function TariffPage() {
     }
   };
 
+  const fetchVehicleTypes = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/VehicleTypes/list`);
+      const data = await response.json();
+      setVehicleTypes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Fetch Vehicle Types Error:", error);
+      Alert.alert("Error", "Failed to load vehicle types");
+    } finally {
+      setFetchingVehicleTypes(false);
+    }
+  };
+
   const fetchTariffs = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/tariff/list`);
       const data = await response.json();
-      
+
       // Enrich tariff data with location names
       const enrichedTariffs = data.map((tariff: Tariff) => ({
         ...tariff,
-        locationName: locations.find(l => l.id === tariff.locationId)?.name || 'Unknown'
+        locationName:
+          locations.find((l) => l.id === tariff.locationId)?.name || "Unknown",
       }));
-      
+
       setTariffs(enrichedTariffs);
     } catch (error) {
       Alert.alert("Error", "Failed to load tariffs");
@@ -108,7 +139,7 @@ export default function TariffPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchLocations(), fetchTariffs()]);
+    await Promise.all([fetchLocations(), fetchVehicleTypes(), fetchTariffs()]);
     setRefreshing(false);
   };
 
@@ -117,16 +148,16 @@ export default function TariffPage() {
     const lastSlot = tariffSlots[tariffSlots.length - 1];
     const newFromHour = lastSlot ? lastSlot.toHour : 0;
     const newToHour = newFromHour + 1;
-    
+
     setTariffSlots([
       ...tariffSlots,
-      { 
-        id: Date.now().toString(), 
-        fromHour: newFromHour, 
-        toHour: newToHour, 
+      {
+        id: Date.now().toString(),
+        fromHour: newFromHour,
+        toHour: newToHour,
         rate: 0,
-        isNew: true 
-      }
+        isNew: true,
+      },
     ]);
   };
 
@@ -135,16 +166,16 @@ export default function TariffPage() {
     const lastSlot = editTariffSlots[editTariffSlots.length - 1];
     const newFromHour = lastSlot ? lastSlot.toHour : 0;
     const newToHour = newFromHour + 1;
-    
+
     setEditTariffSlots([
       ...editTariffSlots,
-      { 
-        id: Date.now().toString(), 
-        fromHour: newFromHour, 
-        toHour: newToHour, 
+      {
+        id: Date.now().toString(),
+        fromHour: newFromHour,
+        toHour: newToHour,
         rate: 0,
-        isNew: true 
-      }
+        isNew: true,
+      },
     ]);
   };
 
@@ -169,54 +200,62 @@ export default function TariffPage() {
   };
 
   // Update tariff slot
-  const updateTariffSlot = (index: number, field: keyof TariffSlot, value: string) => {
+  const updateTariffSlot = (
+    index: number,
+    field: keyof TariffSlot,
+    value: string,
+  ) => {
     const numericValue = parseFloat(value) || 0;
     const newSlots = [...tariffSlots];
-    
-    if (field === 'fromHour') {
+
+    if (field === "fromHour") {
       newSlots[index].fromHour = numericValue;
       // Update next row's from hour if exists
       if (index < newSlots.length - 1) {
         newSlots[index + 1].fromHour = numericValue;
       }
-    } else if (field === 'toHour') {
+    } else if (field === "toHour") {
       newSlots[index].toHour = numericValue;
       // Update next row's from hour
       if (index < newSlots.length - 1) {
         newSlots[index + 1].fromHour = numericValue;
       }
-    } else if (field === 'rate') {
+    } else if (field === "rate") {
       newSlots[index].rate = numericValue;
     }
-    
+
     setTariffSlots(newSlots);
   };
 
   // Update edit tariff slot
-  const updateEditTariffSlot = (index: number, field: keyof TariffSlot, value: string) => {
+  const updateEditTariffSlot = (
+    index: number,
+    field: keyof TariffSlot,
+    value: string,
+  ) => {
     const numericValue = parseFloat(value) || 0;
     const newSlots = [...editTariffSlots];
-    
-    if (field === 'fromHour') {
+
+    if (field === "fromHour") {
       newSlots[index].fromHour = numericValue;
       if (index < newSlots.length - 1) {
         newSlots[index + 1].fromHour = numericValue;
       }
-    } else if (field === 'toHour') {
+    } else if (field === "toHour") {
       newSlots[index].toHour = numericValue;
       if (index < newSlots.length - 1) {
         newSlots[index + 1].fromHour = numericValue;
       }
-    } else if (field === 'rate') {
+    } else if (field === "rate") {
       newSlots[index].rate = numericValue;
     }
-    
+
     setEditTariffSlots(newSlots);
   };
 
   const validateForm = () => {
-    if (!vehicleName.trim()) {
-      Alert.alert("Validation Error", "Please enter vehicle name");
+    if (!vehicleName) {
+      Alert.alert("Validation Error", "Please select a vehicle type");
       return false;
     }
     if (!selectedLocation) {
@@ -229,7 +268,10 @@ export default function TariffPage() {
         return false;
       }
       if (slot.toHour <= slot.fromHour) {
-        Alert.alert("Validation Error", "To hour must be greater than from hour");
+        Alert.alert(
+          "Validation Error",
+          "To hour must be greater than from hour",
+        );
         return false;
       }
     }
@@ -237,8 +279,8 @@ export default function TariffPage() {
   };
 
   const validateEditForm = () => {
-    if (!editVehicleName.trim()) {
-      Alert.alert("Validation Error", "Please enter vehicle name");
+    if (!editVehicleName) {
+      Alert.alert("Validation Error", "Please select a vehicle type");
       return false;
     }
     if (!editSelectedLocation) {
@@ -251,7 +293,10 @@ export default function TariffPage() {
         return false;
       }
       if (slot.toHour <= slot.fromHour) {
-        Alert.alert("Validation Error", "To hour must be greater than from hour");
+        Alert.alert(
+          "Validation Error",
+          "To hour must be greater than from hour",
+        );
         return false;
       }
     }
@@ -274,28 +319,24 @@ export default function TariffPage() {
           tariffs: tariffSlots.map(({ fromHour, toHour, rate }) => ({
             fromHour,
             toHour,
-            rate
-          }))
+            rate,
+          })),
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert(
-          "Success",
-          "Tariff created successfully",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                resetForm();
-                fetchTariffs();
-                setSelectedTab('list');
-              }
-            }
-          ]
-        );
+        Alert.alert("Success", "Tariff created successfully", [
+          {
+            text: "OK",
+            onPress: () => {
+              resetForm();
+              fetchTariffs();
+              setSelectedTab("list");
+            },
+          },
+        ]);
       } else {
         Alert.alert("Creation Failed", data.message || "Something went wrong");
       }
@@ -311,47 +352,45 @@ export default function TariffPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/tariff/${editingTariff.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${API_BASE_URL}/tariff/${editingTariff.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            vehicleName: editVehicleName.trim(),
+            locationId: editSelectedLocation?.id,
+            slots: editTariffSlots.map(({ fromHour, toHour, rate }) => ({
+              fromHour,
+              toHour,
+              rate,
+            })),
+          }),
         },
-        body: JSON.stringify({
-          vehicleName: editVehicleName.trim(),
-          locationId: editSelectedLocation?.id,
-          slots: editTariffSlots.map(({ fromHour, toHour, rate }) => ({
-            fromHour,
-            toHour,
-            rate
-          }))
-        }),
-      });
+      );
 
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert(
-          "Success",
-          "Tariff updated successfully",
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                setEditModalVisible(false);
-                setEditingTariff(null);
-                fetchTariffs();
-              }
-            }
-          ]
-        );
+        Alert.alert("Success", "Tariff updated successfully", [
+          {
+            text: "OK",
+            onPress: () => {
+              setEditModalVisible(false);
+              setEditingTariff(null);
+              fetchTariffs();
+            },
+          },
+        ]);
       } else {
         Alert.alert("Update Failed", data.message || "Something went wrong");
       }
-    } 
-    catch (error: any) {
-  console.log("CREATE TARIFF ERROR:", error);
-  Alert.alert("Error", error?.message || "Network error occurred");
-}
+    } catch (error: any) {
+      console.log("CREATE TARIFF ERROR:", error);
+      Alert.alert("Error", error?.message || "Network error occurred");
+    }
   };
 
   const handleDeleteTariff = (id: number) => {
@@ -370,7 +409,7 @@ export default function TariffPage() {
               });
 
               if (response.ok) {
-                setTariffs(tariffs.filter(t => t.id !== id));
+                setTariffs(tariffs.filter((t) => t.id !== id));
                 Alert.alert("Success", "Tariff deleted successfully");
               } else {
                 Alert.alert("Error", "Failed to delete tariff");
@@ -378,30 +417,42 @@ export default function TariffPage() {
             } catch (error) {
               Alert.alert("Error", "Network error occurred");
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
   const openEditModal = (tariff: Tariff) => {
     setEditingTariff(tariff);
     setEditVehicleName(tariff.vehicleName);
-    const location = locations.find(l => l.id === tariff.locationId);
+    const location = locations.find((l) => l.id === tariff.locationId);
     setEditSelectedLocation(location || null);
-    setEditTariffSlots(tariff.slots.map(slot => ({ ...slot, id: slot.id?.toString() })));
+    setEditTariffSlots(
+      tariff.slots.map((slot) => ({ ...slot, id: slot.id?.toString() })),
+    );
     setEditModalVisible(true);
   };
 
   const resetForm = () => {
     setVehicleName("");
     setSelectedLocation(null);
-    setTariffSlots([{ id: '1', fromHour: 0, toHour: 1, rate: 0 }]);
+    setTariffSlots([{ id: "1", fromHour: 0, toHour: 1, rate: 0 }]);
   };
 
   const selectLocation = (location: Location) => {
     setSelectedLocation(location);
     setLocationDropdownVisible(false);
+  };
+
+  const selectVehicleType = (vType: VehicleType) => {
+    setVehicleName(vType.type);
+    setVehicleTypeDropdownVisible(false);
+  };
+
+  const selectEditVehicleType = (vType: VehicleType) => {
+    setEditVehicleName(vType.type);
+    setEditVehicleTypeDropdownVisible(false);
   };
 
   const selectEditLocation = (location: Location) => {
@@ -426,7 +477,7 @@ export default function TariffPage() {
       </View>
 
       <Text style={styles.tariffVehicleName}>{item.vehicleName}</Text>
-      
+
       <View style={styles.tariffSlotsContainer}>
         <Text style={styles.tariffSlotsTitle}>Rate Slots:</Text>
         {item.slots.map((slot, index) => (
@@ -440,14 +491,14 @@ export default function TariffPage() {
       </View>
 
       <View style={styles.tariffActions}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.tariffEditButton}
           onPress={() => openEditModal(item)}
         >
           <Text style={styles.tariffEditIcon}>✏️</Text>
           <Text style={styles.tariffEditText}>Edit</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.tariffDeleteButton}
           onPress={() => handleDeleteTariff(item.id)}
         >
@@ -481,7 +532,7 @@ export default function TariffPage() {
               <TextInput
                 style={styles.slotInput}
                 value={slot.fromHour.toString()}
-                onChangeText={(value) => setSlot(index, 'fromHour', value)}
+                onChangeText={(value) => setSlot(index, "fromHour", value)}
                 keyboardType="numeric"
                 placeholder="0"
                 editable={index === 0}
@@ -493,7 +544,7 @@ export default function TariffPage() {
               <TextInput
                 style={styles.slotInput}
                 value={slot.toHour.toString()}
-                onChangeText={(value) => setSlot(index, 'toHour', value)}
+                onChangeText={(value) => setSlot(index, "toHour", value)}
                 keyboardType="numeric"
                 placeholder="1"
               />
@@ -504,14 +555,14 @@ export default function TariffPage() {
               <TextInput
                 style={styles.slotInput}
                 value={slot.rate.toString()}
-                onChangeText={(value) => setSlot(index, 'rate', value)}
+                onChangeText={(value) => setSlot(index, "rate", value)}
                 keyboardType="numeric"
                 placeholder="0"
               />
             </View>
 
             {currentSlots.length > 1 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.removeSlotButton}
                 onPress={() => removeRow(index)}
               >
@@ -527,10 +578,10 @@ export default function TariffPage() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#d32f2f" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -545,31 +596,57 @@ export default function TariffPage() {
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'create' && styles.activeTab]}
-          onPress={() => setSelectedTab('create')}
+          style={[styles.tab, selectedTab === "create" && styles.activeTab]}
+          onPress={() => setSelectedTab("create")}
         >
-          <Text style={[styles.tabIcon, selectedTab === 'create' && styles.activeTabIcon]}>➕</Text>
-          <Text style={[styles.tabText, selectedTab === 'create' && styles.activeTabText]}>Create Tariff</Text>
+          <Text
+            style={[
+              styles.tabIcon,
+              selectedTab === "create" && styles.activeTabIcon,
+            ]}
+          >
+            ➕
+          </Text>
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "create" && styles.activeTabText,
+            ]}
+          >
+            Create Tariff
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'list' && styles.activeTab]}
-          onPress={() => setSelectedTab('list')}
+          style={[styles.tab, selectedTab === "list" && styles.activeTab]}
+          onPress={() => setSelectedTab("list")}
         >
-          <Text style={[styles.tabIcon, selectedTab === 'list' && styles.activeTabIcon]}>📋</Text>
-          <Text style={[styles.tabText, selectedTab === 'list' && styles.activeTabText]}>
+          <Text
+            style={[
+              styles.tabIcon,
+              selectedTab === "list" && styles.activeTabIcon,
+            ]}
+          >
+            📋
+          </Text>
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "list" && styles.activeTabText,
+            ]}
+          >
             Tariff List ({tariffs.length})
           </Text>
         </TouchableOpacity>
       </View>
 
-      {selectedTab === 'create' ? (
+      {selectedTab === "create" ? (
         /* Create Tariff Form */
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardView}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <ScrollView 
+            <ScrollView
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -581,24 +658,36 @@ export default function TariffPage() {
                   <Text style={styles.formSubtitle}>Set up parking rates</Text>
                 </View>
 
-                {/* Vehicle Name Input */}
+                {/* Vehicle Name Dropdown */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Vehicle Name <Text style={styles.requiredStar}>*</Text></Text>
-                  <View style={styles.inputWrapper}>
-                    <Text style={styles.inputIcon}>🚗</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter vehicle type (e.g., Car, Bike)"
-                      placeholderTextColor="#999"
-                      value={vehicleName}
-                      onChangeText={setVehicleName}
-                    />
-                  </View>
+                  <Text style={styles.inputLabel}>
+                    Vehicle Name <Text style={styles.requiredStar}>*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.dropdownButton}
+                    onPress={() => setVehicleTypeDropdownVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.dropdownContent}>
+                      <Text style={styles.dropdownIcon}>🚗</Text>
+                      <Text
+                        style={[
+                          styles.dropdownText,
+                          !vehicleName && styles.dropdownPlaceholder,
+                        ]}
+                      >
+                        {vehicleName || "Select vehicle type"}
+                      </Text>
+                    </View>
+                    <Text style={styles.dropdownArrow}>▼</Text>
+                  </TouchableOpacity>
                 </View>
 
                 {/* Location Dropdown */}
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Select Location <Text style={styles.requiredStar}>*</Text></Text>
+                  <Text style={styles.inputLabel}>
+                    Select Location <Text style={styles.requiredStar}>*</Text>
+                  </Text>
                   <TouchableOpacity
                     style={styles.dropdownButton}
                     onPress={() => setLocationDropdownVisible(true)}
@@ -606,11 +695,15 @@ export default function TariffPage() {
                   >
                     <View style={styles.dropdownContent}>
                       <Text style={styles.dropdownIcon}>📍</Text>
-                      <Text style={[
-                        styles.dropdownText,
-                        !selectedLocation && styles.dropdownPlaceholder
-                      ]}>
-                        {selectedLocation ? selectedLocation.name : "Choose a location"}
+                      <Text
+                        style={[
+                          styles.dropdownText,
+                          !selectedLocation && styles.dropdownPlaceholder,
+                        ]}
+                      >
+                        {selectedLocation
+                          ? selectedLocation.name
+                          : "Choose a location"}
                       </Text>
                     </View>
                     <Text style={styles.dropdownArrow}>▼</Text>
@@ -622,7 +715,10 @@ export default function TariffPage() {
 
                 {/* Create Button */}
                 <TouchableOpacity
-                  style={[styles.createButton, loading && styles.createButtonDisabled]}
+                  style={[
+                    styles.createButton,
+                    loading && styles.createButtonDisabled,
+                  ]}
                   onPress={handleCreateTariff}
                   disabled={loading}
                   activeOpacity={0.8}
@@ -647,13 +743,19 @@ export default function TariffPage() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderTariffItem}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={["#d32f2f"]} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={["#d32f2f"]}
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>💰</Text>
               <Text style={styles.emptyText}>No tariffs found</Text>
-              <Text style={styles.emptySubtext}>Tap the Create tab to add a tariff</Text>
+              <Text style={styles.emptySubtext}>
+                Tap the Create tab to add a tariff
+              </Text>
             </View>
           }
           contentContainerStyle={styles.listContent}
@@ -668,7 +770,9 @@ export default function TariffPage() {
         animationType="slide"
         onRequestClose={() => setLocationDropdownVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setLocationDropdownVisible(false)}>
+        <TouchableWithoutFeedback
+          onPress={() => setLocationDropdownVisible(false)}
+        >
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={styles.modalContent}>
@@ -694,12 +798,15 @@ export default function TariffPage() {
                         key={location.id}
                         style={[
                           styles.locationItem,
-                          selectedLocation?.id === location.id && styles.selectedLocationItem
+                          selectedLocation?.id === location.id &&
+                            styles.selectedLocationItem,
                         ]}
                         onPress={() => selectLocation(location)}
                       >
                         <Text style={styles.locationItemIcon}>📍</Text>
-                        <Text style={styles.locationItemName}>{location.name}</Text>
+                        <Text style={styles.locationItemName}>
+                          {location.name}
+                        </Text>
                         {selectedLocation?.id === location.id && (
                           <Text style={styles.checkIcon}>✓</Text>
                         )}
@@ -709,7 +816,149 @@ export default function TariffPage() {
                     {locations.length === 0 && (
                       <View style={styles.emptyLocations}>
                         <Text style={styles.emptyIcon}>📍</Text>
-                        <Text style={styles.emptyText}>No locations available</Text>
+                        <Text style={styles.emptyText}>
+                          No locations available
+                        </Text>
+                      </View>
+                    )}
+                  </ScrollView>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Create Vehicle Type Selection Modal */}
+      <Modal
+        visible={vehicleTypeDropdownVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setVehicleTypeDropdownVisible(false)}
+      >
+        <TouchableWithoutFeedback
+          onPress={() => setVehicleTypeDropdownVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Vehicle Type</Text>
+                  <TouchableOpacity
+                    onPress={() => setVehicleTypeDropdownVisible(false)}
+                    style={styles.modalCloseButton}
+                  >
+                    <Text style={styles.modalCloseIcon}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {fetchingVehicleTypes ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#d32f2f" />
+                    <Text style={styles.loadingText}>
+                      Loading vehicle types...
+                    </Text>
+                  </View>
+                ) : (
+                  <ScrollView style={styles.locationList}>
+                    {vehicleTypes.map((vType) => (
+                      <TouchableOpacity
+                        key={vType.id}
+                        style={[
+                          styles.locationItem,
+                          vehicleName === vType.type &&
+                            styles.selectedLocationItem,
+                        ]}
+                        onPress={() => selectVehicleType(vType)}
+                      >
+                        <Text style={styles.locationItemIcon}>
+                          {vType.icon}
+                        </Text>
+                        <Text style={styles.locationItemName}>
+                          {vType.type}
+                        </Text>
+                        {vehicleName === vType.type && (
+                          <Text style={styles.checkIcon}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+
+                    {vehicleTypes.length === 0 && (
+                      <View style={styles.emptyLocations}>
+                        <Text style={styles.emptyIcon}>🚗</Text>
+                        <Text style={styles.emptyText}>
+                          No vehicle types available
+                        </Text>
+                      </View>
+                    )}
+                  </ScrollView>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Edit Vehicle Type Selection Modal */}
+      <Modal
+        visible={editVehicleTypeDropdownVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setEditVehicleTypeDropdownVisible(false)}
+      >
+        <TouchableWithoutFeedback
+          onPress={() => setEditVehicleTypeDropdownVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Vehicle Type</Text>
+                  <TouchableOpacity
+                    onPress={() => setEditVehicleTypeDropdownVisible(false)}
+                    style={styles.modalCloseButton}
+                  >
+                    <Text style={styles.modalCloseIcon}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {fetchingVehicleTypes ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#d32f2f" />
+                    <Text style={styles.loadingText}>
+                      Loading vehicle types...
+                    </Text>
+                  </View>
+                ) : (
+                  <ScrollView style={styles.locationList}>
+                    {vehicleTypes.map((vType) => (
+                      <TouchableOpacity
+                        key={vType.id}
+                        style={[
+                          styles.locationItem,
+                          editVehicleName === vType.type &&
+                            styles.selectedLocationItem,
+                        ]}
+                        onPress={() => selectEditVehicleType(vType)}
+                      >
+                        <Text style={styles.locationItemIcon}>
+                          {vType.icon}
+                        </Text>
+                        <Text style={styles.locationItemName}>
+                          {vType.type}
+                        </Text>
+                        {editVehicleName === vType.type && (
+                          <Text style={styles.checkIcon}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+
+                    {vehicleTypes.length === 0 && (
+                      <View style={styles.emptyLocations}>
+                        <Text style={styles.emptyIcon}>🚗</Text>
+                        <Text style={styles.emptyText}>
+                          No vehicle types available
+                        </Text>
                       </View>
                     )}
                   </ScrollView>
@@ -749,24 +998,37 @@ export default function TariffPage() {
 
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <View style={styles.modalBody}>
-                    {/* Edit Vehicle Name */}
+                    {/* Edit Vehicle Name Dropdown */}
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Vehicle Name <Text style={styles.requiredStar}>*</Text></Text>
-                      <View style={styles.inputWrapper}>
-                        <Text style={styles.inputIcon}>🚗</Text>
-                        <TextInput
-                          style={styles.input}
-                          placeholder="Enter vehicle type"
-                          placeholderTextColor="#999"
-                          value={editVehicleName}
-                          onChangeText={setEditVehicleName}
-                        />
-                      </View>
+                      <Text style={styles.inputLabel}>
+                        Vehicle Name <Text style={styles.requiredStar}>*</Text>
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.dropdownButton}
+                        onPress={() => setEditVehicleTypeDropdownVisible(true)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.dropdownContent}>
+                          <Text style={styles.dropdownIcon}>🚗</Text>
+                          <Text
+                            style={[
+                              styles.dropdownText,
+                              !editVehicleName && styles.dropdownPlaceholder,
+                            ]}
+                          >
+                            {editVehicleName || "Select vehicle type"}
+                          </Text>
+                        </View>
+                        <Text style={styles.dropdownArrow}>▼</Text>
+                      </TouchableOpacity>
                     </View>
 
                     {/* Edit Location Dropdown */}
                     <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Select Location <Text style={styles.requiredStar}>*</Text></Text>
+                      <Text style={styles.inputLabel}>
+                        Select Location{" "}
+                        <Text style={styles.requiredStar}>*</Text>
+                      </Text>
                       <TouchableOpacity
                         style={styles.dropdownButton}
                         onPress={() => setEditLocationDropdownVisible(true)}
@@ -774,11 +1036,16 @@ export default function TariffPage() {
                       >
                         <View style={styles.dropdownContent}>
                           <Text style={styles.dropdownIcon}>📍</Text>
-                          <Text style={[
-                            styles.dropdownText,
-                            !editSelectedLocation && styles.dropdownPlaceholder
-                          ]}>
-                            {editSelectedLocation ? editSelectedLocation.name : "Choose a location"}
+                          <Text
+                            style={[
+                              styles.dropdownText,
+                              !editSelectedLocation &&
+                                styles.dropdownPlaceholder,
+                            ]}
+                          >
+                            {editSelectedLocation
+                              ? editSelectedLocation.name
+                              : "Choose a location"}
                           </Text>
                         </View>
                         <Text style={styles.dropdownArrow}>▼</Text>
@@ -790,7 +1057,10 @@ export default function TariffPage() {
 
                     {/* Update Button */}
                     <TouchableOpacity
-                      style={[styles.createButton, loading && styles.createButtonDisabled]}
+                      style={[
+                        styles.createButton,
+                        loading && styles.createButtonDisabled,
+                      ]}
                       onPress={handleUpdateTariff}
                       disabled={loading}
                       activeOpacity={0.8}
@@ -800,7 +1070,9 @@ export default function TariffPage() {
                       ) : (
                         <>
                           <Text style={styles.createButtonIcon}>✓</Text>
-                          <Text style={styles.createButtonText}>Update Tariff</Text>
+                          <Text style={styles.createButtonText}>
+                            Update Tariff
+                          </Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -819,7 +1091,9 @@ export default function TariffPage() {
         animationType="slide"
         onRequestClose={() => setEditLocationDropdownVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setEditLocationDropdownVisible(false)}>
+        <TouchableWithoutFeedback
+          onPress={() => setEditLocationDropdownVisible(false)}
+        >
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback onPress={() => {}}>
               <View style={styles.modalContent}>
@@ -839,12 +1113,15 @@ export default function TariffPage() {
                       key={location.id}
                       style={[
                         styles.locationItem,
-                        editSelectedLocation?.id === location.id && styles.selectedLocationItem
+                        editSelectedLocation?.id === location.id &&
+                          styles.selectedLocationItem,
                       ]}
                       onPress={() => selectEditLocation(location)}
                     >
                       <Text style={styles.locationItemIcon}>📍</Text>
-                      <Text style={styles.locationItemName}>{location.name}</Text>
+                      <Text style={styles.locationItemName}>
+                        {location.name}
+                      </Text>
                       {editSelectedLocation?.id === location.id && (
                         <Text style={styles.checkIcon}>✓</Text>
                       )}
