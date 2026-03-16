@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { API_BASE_URL } from "@/services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Keyboard,
   Modal,
@@ -12,21 +15,32 @@ import {
   View
 } from "react-native";
 
+
+// Define the Vehicle Type interface (simplified - no icons)
+interface VehicleType {
+  id: string;
+  name: string;
+}
+
 export default function EntryTab() {
+  const [user, setUser] = useState<any>(null);
   // Vehicle number parts
   const [stateCode, setStateCode] = useState("KL");
   const [districtCode, setDistrictCode] = useState("");
   const [seriesCode, setSeriesCode] = useState("");
   const [number, setNumber] = useState("");
   
-  const [vehicleType, setVehicleType] = useState("Car");
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | null>(null);
   const [driverName, setDriverName] = useState("");
   const [submitted, setSubmitted] = useState(false);
   
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
   // Dropdown state
   const [stateDropdownVisible, setStateDropdownVisible] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
-  const stateButtonRef = useRef<any>(null);
   
   // Advance payment modal states
   const [advanceModalVisible, setAdvanceModalVisible] = useState(false);
@@ -36,10 +50,67 @@ export default function EntryTab() {
   // Keyboard state
   const [keyboardOffset, setKeyboardOffset] = useState(0);
 
-  const VEHICLE_TYPES = ["Car", "Bike", "Truck", "Van"];
-  
-  // Only 4 state codes as requested
   const STATE_CODES = ["KL", "TN", "KA", "AP"];
+useEffect(() => {
+  loadUser();
+}, []);
+
+const loadUser = async () => {
+  const storedUser = await AsyncStorage.getItem("user");
+  if (storedUser) {
+    setUser(JSON.parse(storedUser));
+  }
+};
+  // Fetch vehicle types from API
+  useEffect(() => {
+    fetchVehicleTypes();
+  }, []);
+
+  const fetchVehicleTypes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_BASE_URL}/VehicleTypes`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch vehicle types');
+      }
+      
+      const data = await response.json();
+      
+      const transformedData = data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name
+      }));
+      
+      setVehicleTypes(transformedData);
+      
+      if (transformedData.length > 0) {
+        setSelectedVehicleType(transformedData[0]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching vehicle types:', err);
+      
+      const fallbackTypes = getDefaultVehicleTypes();
+      setVehicleTypes(fallbackTypes);
+      setSelectedVehicleType(fallbackTypes[0]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getDefaultVehicleTypes = (): VehicleType[] => {
+    return [
+      { id: '1', name: 'Car' },
+      { id: '2', name: 'Bike' },
+      { id: '3', name: 'Truck' },
+      { id: '4', name: 'Van' },
+      { id: '5', name: 'Bus' },
+      { id: '6', name: 'Auto' },
+    ];
+  };
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
@@ -61,26 +132,9 @@ export default function EntryTab() {
     };
   }, []);
 
-  // Measure button position for dropdown - FIXED VERSION
-  const measureButtonPosition = () => {
-    if (stateButtonRef.current) {
-      stateButtonRef.current.measureInWindow((x: number, y: number, width: number, height: number) => {
-        setDropdownPosition({
-          top: y + height + 2,
-          left: x,
-          width: width,
-        });
-      });
-    }
-  };
-
   const handleStateButtonPress = () => {
     Keyboard.dismiss();
-    // Small delay to ensure keyboard is dismissed before measuring
-    setTimeout(() => {
-      measureButtonPosition();
-      setStateDropdownVisible(true);
-    }, 100);
+    setStateDropdownVisible(!stateDropdownVisible);
   };
 
   const handleStateSelect = (code: string) => {
@@ -95,73 +149,122 @@ export default function EntryTab() {
       return;
     }
 
-    // Validate district and series codes (optional but should be letters if entered)
-    if (districtCode && !/^[A-Z]{1,2}$/.test(districtCode)) {
-      Alert.alert("Invalid", "District code should contain only letters");
-      return;
-    }
-    if (seriesCode && !/^[A-Z]{1,2}$/.test(seriesCode)) {
-      Alert.alert("Invalid", "Series code should contain only letters");
+    if (!selectedVehicleType) {
+      Alert.alert("Required", "Please select vehicle type");
       return;
     }
 
-    // Construct full vehicle number (use placeholder values if empty)
+    // Updated validation to allow alphanumeric for district and series
+    if (districtCode && !/^[A-Z0-9]{1,2}$/.test(districtCode)) {
+      Alert.alert("Invalid", "District code should contain only letters and numbers");
+      return;
+    }
+    if (seriesCode && !/^[A-Z0-9]{1,2}$/.test(seriesCode)) {
+      Alert.alert("Invalid", "Series code should contain only letters and numbers");
+      return;
+    }
+
     const finalDistrictCode = districtCode || "XX";
     const finalSeriesCode = seriesCode || "XX";
     
     const fullVehicleNumber = `${stateCode} ${finalDistrictCode} ${finalSeriesCode} ${number}`;
     
-    // Store vehicle data temporarily
     setTempVehicleData({
       vehicleNumber: fullVehicleNumber,
-      vehicleType,
+      vehicleType: selectedVehicleType,
       driverName: driverName.trim() || undefined,
     });
     
-    // Show advance payment modal
     setAdvanceModalVisible(true);
   };
 
-  const handleAdvanceSubmit = () => {
-    Keyboard.dismiss();
-    if (!advanceAmount.trim()) {
-      Alert.alert("Required", "Please enter advance amount");
-      return;
-    }
+const handleAdvanceSubmit = async () => {
+  Keyboard.dismiss();
+  
+  if (!advanceAmount.trim()) {
+    Alert.alert("Required", "Please enter advance amount");
+    return;
+  }
 
-    const amount = parseFloat(advanceAmount);
-    if (isNaN(amount) || amount <= 0) {
-      Alert.alert("Invalid", "Please enter a valid amount");
-      return;
-    }
+  const amount = parseFloat(advanceAmount);
+  if (isNaN(amount) || amount <= 0) {
+    Alert.alert("Invalid", "Please enter a valid amount");
+    return;
+  }
 
-    // Here you would call your API with both vehicle data and advance amount
-    console.log("Vehicle Data:", tempVehicleData);
-    console.log("Advance Amount:", amount);
+  if (!user) {
+    Alert.alert("Error", "User not found. Please login again.");
+    return;
+  }
 
-    setSubmitted(true);
-    setTimeout(() => {
-      // Reset all fields
-      setStateCode("KL");
-      setDistrictCode("");
-      setSeriesCode("");
-      setNumber("");
-      setDriverName("");
-      setVehicleType("Car");
-      setAdvanceAmount("");
-      setAdvanceModalVisible(false);
-      setTempVehicleData(null);
-      setSubmitted(false);
-    }, 2000);
+  // ✅ Debug: Log the user object to see what's inside
+  console.log("Full User Object:", user);
+  console.log("User ID:", user.userId);
+  console.log("User ID Type:", typeof user.userId);
+
+  // ✅ Ensure userId is parsed as a number (not string)
+  const createdStaffId = parseInt(user.userId) || 0;
+
+  if (createdStaffId === 0) {
+    Alert.alert("Error", "Invalid user ID. Please login again.");
+    return;
+  }
+
+  const apiPayload = {
+    vehicleNumber: tempVehicleData.vehicleNumber,
+    vehicleOwnerNumber: "",
+    vehicleTypeId: parseInt(tempVehicleData.vehicleType.id), // ✅ Parse as int
+    advanceAmount: amount, // ✅ Use parsed amount
+    createdStaffId: createdStaffId // ✅ Use parsed staff ID
   };
 
+  console.log("API Payload:", apiPayload);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/Parking/CheckIn`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(apiPayload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      Alert.alert("Success", "Vehicle checked in successfully!");
+      
+      // Reset form
+      setSubmitted(true);
+      setTimeout(() => {
+        setStateCode("KL");
+        setDistrictCode("");
+        setSeriesCode("");
+        setNumber("");
+        setDriverName("");
+        setAdvanceAmount("");
+        setAdvanceModalVisible(false);
+        setTempVehicleData(null);
+        setSubmitted(false);
+      }, 2000);
+    } else {
+      Alert.alert("Error", result.message || "Check-in failed");
+      console.error("API Error:", result);
+    }
+
+    console.log("Response:", result);
+
+  } catch (error) {
+    console.error("Checkin error:", error);
+    Alert.alert("Error", "Failed to connect to server");
+  }
+};
   const closeAdvanceModal = () => {
     setAdvanceModalVisible(false);
     setAdvanceAmount("");
     setTempVehicleData(null);
   };
 
-  // Close dropdown when tapping outside
   const handleOutsidePress = () => {
     if (stateDropdownVisible) {
       setStateDropdownVisible(false);
@@ -169,14 +272,32 @@ export default function EntryTab() {
     Keyboard.dismiss();
   };
 
-  // Format input to only allow letters and uppercase
-  const formatLetterInput = (text: string) => {
-    return text.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+  // Updated to accept both letters and numbers
+  const formatAlphanumericInput = (text: string) => {
+    return text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 2);
   };
 
-  // Format number input to only allow digits
   const formatNumberInput = (text: string) => {
     return text.replace(/[^0-9]/g, '').slice(0, 4);
+  };
+
+  const renderVehicleTypeChip = (type: VehicleType) => {
+    const isActive = selectedVehicleType?.id === type.id;
+    
+    return (
+      <TouchableOpacity
+        key={type.id}
+        style={[styles.typeChip, isActive && styles.typeChipActive]}
+        onPress={() => {
+          setSelectedVehicleType(type);
+          setStateDropdownVisible(false);
+        }}
+      >
+        <Text style={[styles.typeChipText, isActive && styles.typeChipTextActive]}>
+          {type.name}
+        </Text>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -196,100 +317,90 @@ export default function EntryTab() {
 
             <Text style={styles.fieldLabel}>Vehicle Number *</Text>
             
-            {/* Vehicle Number Input Row */}
-            <View style={styles.vehicleNumberRow}>
-              {/* State Code Dropdown Button */}
-              <TouchableOpacity 
-                ref={stateButtonRef}
-                style={styles.vehicleNumberPart}
-                onPress={handleStateButtonPress}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.vehicleNumberPartText}>{stateCode}</Text>
-                <Text style={styles.dropdownIcon}>▼</Text>
-              </TouchableOpacity>
-
-              {/* District Code Input - Only Letters */}
-              <TextInput
-                style={styles.vehicleNumberPart}
-                value={districtCode}
-                onChangeText={(text) => setDistrictCode(formatLetterInput(text))}
-                maxLength={2}
-                placeholder="XX"
-                placeholderTextColor="#999"
-                autoCapitalize="characters"
-                keyboardType="default"
-                onFocus={() => setStateDropdownVisible(false)}
-              />
-
-              {/* Series Code Input - Only Letters */}
-              <TextInput
-                style={styles.vehicleNumberPart}
-                value={seriesCode}
-                onChangeText={(text) => setSeriesCode(formatLetterInput(text))}
-                maxLength={2}
-                placeholder="XX"
-                placeholderTextColor="#999"
-                autoCapitalize="characters"
-                keyboardType="default"
-                onFocus={() => setStateDropdownVisible(false)}
-              />
-
-              {/* Number Input - Only Numbers */}
-              <TextInput
-                style={[styles.vehicleNumberPart, styles.vehicleNumberInput]}
-                value={number}
-                onChangeText={(text) => setNumber(formatNumberInput(text))}
-                placeholder="0000"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                maxLength={4}
-                onFocus={() => setStateDropdownVisible(false)}
-              />
-            </View>
-
-            {/* State Dropdown - positioned absolutely */}
-            {stateDropdownVisible && (
-              <>
-                {/* Overlay to capture touches outside */}
-                <TouchableWithoutFeedback onPress={() => setStateDropdownVisible(false)}>
-                  <View style={styles.dropdownOverlay} />
-                </TouchableWithoutFeedback>
-                
-                {/* Dropdown */}
-                <View 
-                  style={[
-                    styles.stateDropdown,
-                    {
-                      top: dropdownPosition.top,
-                      left: dropdownPosition.left,
-                      width: dropdownPosition.width,
-                    }
-                  ]}
+            {/* Vehicle Number Input Container with Dropdown */}
+            <View style={styles.vehicleNumberContainer}>
+              <View style={styles.vehicleNumberRow}>
+                {/* State Code Dropdown Button */}
+                <TouchableOpacity 
+                  style={styles.vehicleNumberPart}
+                  onPress={handleStateButtonPress}
+                  activeOpacity={0.7}
                 >
-                  {STATE_CODES.map((code) => (
-                    <TouchableOpacity
-                      key={code}
-                      style={[
-                        styles.stateOption,
-                        code === stateCode && styles.stateOptionActive
-                      ]}
-                      onPress={() => handleStateSelect(code)}
-                    >
-                      <Text style={[
-                        styles.stateOptionText,
-                        code === stateCode && styles.stateOptionTextActive
-                      ]}>
-                        {code}
-                      </Text>
-                      {code === stateCode && (
-                        <Text style={styles.checkIcon}>✓</Text>
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
+                  <Text style={styles.vehicleNumberPartText}>{stateCode}</Text>
+                  <Text style={styles.dropdownIcon}>▼</Text>
+                </TouchableOpacity>
+
+                {/* District Code Input - Now accepts letters AND numbers */}
+                <TextInput
+                  style={styles.vehicleNumberPart}
+                  value={districtCode}
+                  onChangeText={(text) => setDistrictCode(formatAlphanumericInput(text))}
+                  maxLength={2}
+                  placeholder="XX"
+                  placeholderTextColor="#999"
+                  autoCapitalize="characters"
+                  keyboardType="default"
+                  onFocus={() => setStateDropdownVisible(false)}
+                />
+
+                {/* Series Code Input - Now accepts letters AND numbers */}
+                <TextInput
+                  style={styles.vehicleNumberPart}
+                  value={seriesCode}
+                  onChangeText={(text) => setSeriesCode(formatAlphanumericInput(text))}
+                  maxLength={2}
+                  placeholder="XX"
+                  placeholderTextColor="#999"
+                  autoCapitalize="characters"
+                  keyboardType="default"
+                  onFocus={() => setStateDropdownVisible(false)}
+                />
+
+                {/* Number Input - Only Numbers */}
+                <TextInput
+                  style={[styles.vehicleNumberPart, styles.vehicleNumberInput]}
+                  value={number}
+                  onChangeText={(text) => setNumber(formatNumberInput(text))}
+                  placeholder="0000"
+                  placeholderTextColor="#999"
+                  keyboardType="numeric"
+                  maxLength={4}
+                  onFocus={() => setStateDropdownVisible(false)}
+                />
+              </View>
+
+              {/* State Dropdown - positioned relative to container */}
+              {stateDropdownVisible && (
+                <>
+                  <TouchableWithoutFeedback onPress={() => setStateDropdownVisible(false)}>
+                    <View style={styles.dropdownBackdrop} />
+                  </TouchableWithoutFeedback>
+                  
+                  <View style={styles.stateDropdown}>
+                    {STATE_CODES.map((code) => (
+                      <TouchableOpacity
+                        key={code}
+                        style={[
+                          styles.stateOption,
+                          code === stateCode && styles.stateOptionActive
+                        ]}
+                        onPress={() => handleStateSelect(code)}
+                      >
+                        <Text style={[
+                          styles.stateOptionText,
+                          code === stateCode && styles.stateOptionTextActive
+                        ]}>
+                          {code}
+                        </Text>
+                        {code === stateCode && (
+                          <Text style={styles.checkIcon}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+            </View>
 
             <Text style={styles.fieldLabel}>Driver Name</Text>
             <TextInput
@@ -301,28 +412,30 @@ export default function EntryTab() {
               onFocus={() => setStateDropdownVisible(false)}
             />
 
-            <Text style={styles.fieldLabel}>Vehicle Type</Text>
-            <View style={styles.typeRow}>
-              {VEHICLE_TYPES.map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[styles.typeChip, vehicleType === type && styles.typeChipActive]}
-                  onPress={() => {
-                    setVehicleType(type);
-                    setStateDropdownVisible(false);
-                  }}
-                >
-                  <Text style={[styles.typeChipText, vehicleType === type && styles.typeChipTextActive]}>
-                    {type}
-                  </Text>
+            <Text style={styles.fieldLabel}>Vehicle Type *</Text>
+            
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#DC2626" />
+                <Text style={styles.loadingText}>Loading vehicle types...</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Error: {error}</Text>
+                <TouchableOpacity onPress={fetchVehicleTypes} style={styles.retryButton}>
+                  <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+            ) : (
+              <View style={styles.typeRow}>
+                {vehicleTypes.map((type) => renderVehicleTypeChip(type))}
+              </View>
+            )}
 
             <TouchableOpacity
               style={[styles.submitButton, submitted && styles.submitButtonSuccess]}
               onPress={handleCheckIn}
-              disabled={submitted}
+              disabled={submitted || loading || !selectedVehicleType}
             >
               <Text style={styles.submitButtonText}>
                 {submitted ? "✅ Checked In!" : "Check In"}
@@ -379,7 +492,7 @@ export default function EntryTab() {
                         <Text style={styles.previewValue}>{tempVehicleData.vehicleNumber}</Text>
                         <View style={styles.previewDivider} />
                         <Text style={styles.previewLabel}>Vehicle Type</Text>
-                        <Text style={styles.previewValue}>{tempVehicleData.vehicleType}</Text>
+                        <Text style={styles.previewValue}>{tempVehicleData.vehicleType.name}</Text>
                         {tempVehicleData.driverName && (
                           <>
                             <View style={styles.previewDivider} />
@@ -455,10 +568,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
     color: "#222",
   },
+  vehicleNumberContainer: {
+    position: 'relative',
+    marginBottom: 16,
+    zIndex: 1000,
+  },
   vehicleNumberRow: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 16,
   },
   vehicleNumberPart: {
     flex: 1,
@@ -480,25 +597,26 @@ const styles = StyleSheet.create({
   vehicleNumberPartText: {
     fontSize: 15,
     color: "#222",
+    fontWeight: "600",
   },
   dropdownIcon: {
     fontSize: 12,
     color: "#666",
     marginLeft: 4,
   },
-  // Dropdown overlay
-  dropdownOverlay: {
+  dropdownBackdrop: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    zIndex: 999,
+    left: -18,
+    right: -18,
+    bottom: -1000,
+    zIndex: 998,
   },
-  // State Dropdown Styles
   stateDropdown: {
     position: "absolute",
+    top: 52,
+    left: 0,
+    width: 80,
     backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
@@ -508,7 +626,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 5,
-    zIndex: 1000,
+    zIndex: 999,
+    overflow: 'hidden',
   },
   stateOption: {
     flexDirection: "row",
@@ -535,18 +654,63 @@ const styles = StyleSheet.create({
     color: "#DC2626",
     fontWeight: "bold",
   },
-  typeRow: { flexDirection: "row", gap: 8, flexWrap: "wrap", marginBottom: 4 },
-  typeChip: {
-    paddingHorizontal: 14,
+  loadingContainer: {
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+    fontSize: 14,
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorText: {
+    color: '#DC2626',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 20,
     paddingVertical: 8,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  typeRow: { 
+    flexDirection: "row", 
+    gap: 10, 
+    flexWrap: "wrap", 
+    marginBottom: 4 
+  },
+  typeChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "#e0e0e0",
     backgroundColor: "#fafafa",
   },
-  typeChipActive: { backgroundColor: "#DC2626", borderColor: "#DC2626" },
-  typeChipText: { fontSize: 13, color: "#555", fontWeight: "500" },
-  typeChipTextActive: { color: "#fff" },
+  typeChipActive: { 
+    backgroundColor: "#DC2626", 
+    borderColor: "#DC2626" 
+  },
+  typeChipText: { 
+    fontSize: 14, 
+    color: "#555", 
+    fontWeight: "500" 
+  },
+  typeChipTextActive: { 
+    color: "#fff" 
+  },
   submitButton: {
     backgroundColor: "#DC2626",
     padding: 15,
@@ -561,8 +725,6 @@ const styles = StyleSheet.create({
   summaryNumber: { fontSize: 28, fontWeight: "800", color: "#DC2626" },
   summaryLabel: { fontSize: 12, color: "#888", marginTop: 2 },
   summaryDivider: { width: 1, backgroundColor: "#f0f0f0" },
-
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
@@ -19,7 +20,7 @@ export default function Login() {
 
 
   
-  const login = async () => {
+ const login = async () => {
   try {
     setMessage("Connecting...");
 
@@ -35,15 +36,30 @@ export default function Login() {
       })
     });
 
-    const text = await response.text();
+    const data = await response.json();
+
+    // ✅ ADD DETAILED LOGGING HERE
+    console.log("=== LOGIN RESPONSE ===");
     console.log("Status:", response.status);
-    console.log("Response:", text);
+    console.log("Full Response Data:", JSON.stringify(data, null, 2));
+    console.log("Available Keys:", Object.keys(data));
+    console.log("userId:", data.userId);
+    console.log("id:", data.id);
+    console.log("staffId:", data.staffId);
+    console.log("=====================");
 
     if (response.ok) {
-      const data = JSON.parse(text);
+      // Save user correctly
+      await AsyncStorage.setItem("user", JSON.stringify(data));
+
+      // ✅ Verify what was saved
+      const savedUser = await AsyncStorage.getItem("user");
+      console.log("=== SAVED TO ASYNC STORAGE ===");
+      console.log("Raw String:", savedUser);
+      console.log("Parsed:", JSON.parse(savedUser || "{}"));
+      console.log("==============================");
+
       setMessage("Login Successful ✅");
-      console.log("User ID:", data.userId);
-      console.log("Role:", data.role);
 
       // Redirect based on role
       if (data.role === "Admin") {
@@ -53,16 +69,9 @@ export default function Login() {
       }
 
     } else {
-      const text2 = text;
       switch (response.status) {
         case 401:
-          if (text2.toLowerCase().includes("user not found")) {
-            setMessage("Phone number not registered ❌");
-          } else if (text2.toLowerCase().includes("password")) {
-            setMessage("Incorrect password ❌");
-          } else {
-            setMessage(text2 || "Login Failed ❌");
-          }
+          setMessage("Invalid phone number or password ❌");
           break;
         case 400:
           setMessage("Invalid input ❌");
@@ -71,7 +80,7 @@ export default function Login() {
           setMessage("Server error, try again ❌");
           break;
         default:
-          setMessage(text2 || "Login Failed ❌");
+          setMessage("Login Failed ❌");
       }
     }
 
