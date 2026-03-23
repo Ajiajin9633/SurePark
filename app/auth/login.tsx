@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -24,7 +25,7 @@ export default function Login() {
   try {
     setMessage("Connecting...");
 
-    const response = await fetch("http://172.20.10.3:5123/api/auth/login", {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -50,6 +51,8 @@ export default function Login() {
 
     if (response.ok) {
       // Save user correctly
+      await AsyncStorage.setItem("token", data.accessToken);
+      await AsyncStorage.setItem("refreshToken", data.refreshToken);
       await AsyncStorage.setItem("user", JSON.stringify(data));
 
       // ✅ Verify what was saved

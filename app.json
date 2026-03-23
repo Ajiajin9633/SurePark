@@ -26,9 +26,12 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "usesCleartextTraffic": true,
-      "permissions": ["INTERNET"]
+      "permissions": [
+        "INTERNET",
+        "INTERNET"
+      ],
+      "package": "com.anonymous.SafePark"
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
@@ -52,7 +55,5 @@
       "typedRoutes": true,
       "reactCompiler": true
     }
-    
   }
-  
 }
