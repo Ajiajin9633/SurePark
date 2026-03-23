@@ -57,6 +57,7 @@ export default function TariffPage() {
   const [tariffSlots, setTariffSlots] = useState<TariffSlot[]>([
     { id: "1", fromHour: 0, toHour: 1, rate: 0 },
   ]);
+  const [perDayRate, setPerDayRate] = useState("");
 
   // Data states
   const [locations, setLocations] = useState<Location[]>([]);
@@ -81,6 +82,7 @@ export default function TariffPage() {
   const [editSelectedLocation, setEditSelectedLocation] =
     useState<Location | null>(null);
   const [editTariffSlots, setEditTariffSlots] = useState<TariffSlot[]>([]);
+  const [editPerDayRate, setEditPerDayRate] = useState("");
   const [editLocationDropdownVisible, setEditLocationDropdownVisible] =
     useState(false);
   const [editVehicleTypeDropdownVisible, setEditVehicleTypeDropdownVisible] =
@@ -210,13 +212,11 @@ export default function TariffPage() {
 
     if (field === "fromHour") {
       newSlots[index].fromHour = numericValue;
-      // Update next row's from hour if exists
       if (index < newSlots.length - 1) {
         newSlots[index + 1].fromHour = numericValue;
       }
     } else if (field === "toHour") {
       newSlots[index].toHour = numericValue;
-      // Update next row's from hour
       if (index < newSlots.length - 1) {
         newSlots[index + 1].fromHour = numericValue;
       }
@@ -262,19 +262,42 @@ export default function TariffPage() {
       Alert.alert("Validation Error", "Please select a location");
       return false;
     }
-    for (const slot of tariffSlots) {
-      if (slot.rate <= 0) {
-        Alert.alert("Validation Error", "All rates must be greater than 0");
-        return false;
-      }
-      if (slot.toHour <= slot.fromHour) {
-        Alert.alert(
-          "Validation Error",
-          "To hour must be greater than from hour",
-        );
-        return false;
+
+    const hasPerDay = perDayRate !== "" && parseFloat(perDayRate) > 0;
+    const hasHourlySlots = tariffSlots.some((slot) => slot.rate > 0);
+
+    if (!hasPerDay && !hasHourlySlots) {
+      Alert.alert(
+        "Validation Error",
+        "Please fill either hourly slots or a per-day rate",
+      );
+      return false;
+    }
+
+    if (hasHourlySlots) {
+      for (const slot of tariffSlots) {
+        if (slot.rate <= 0) {
+          Alert.alert("Validation Error", "All rates must be greater than 0");
+          return false;
+        }
+        if (slot.toHour <= slot.fromHour) {
+          Alert.alert(
+            "Validation Error",
+            "To hour must be greater than from hour",
+          );
+          return false;
+        }
       }
     }
+
+    if (
+      hasPerDay &&
+      (isNaN(parseFloat(perDayRate)) || parseFloat(perDayRate) <= 0)
+    ) {
+      Alert.alert("Validation Error", "Per-day rate must be a positive number");
+      return false;
+    }
+
     return true;
   };
 
@@ -287,24 +310,60 @@ export default function TariffPage() {
       Alert.alert("Validation Error", "Please select a location");
       return false;
     }
-    for (const slot of editTariffSlots) {
-      if (slot.rate <= 0) {
-        Alert.alert("Validation Error", "All rates must be greater than 0");
-        return false;
-      }
-      if (slot.toHour <= slot.fromHour) {
-        Alert.alert(
-          "Validation Error",
-          "To hour must be greater than from hour",
-        );
-        return false;
+
+    const hasPerDay = editPerDayRate !== "" && parseFloat(editPerDayRate) > 0;
+    const hasHourlySlots = editTariffSlots.some((slot) => slot.rate > 0);
+
+    if (!hasPerDay && !hasHourlySlots) {
+      Alert.alert(
+        "Validation Error",
+        "Please fill either hourly slots or a per-day rate",
+      );
+      return false;
+    }
+
+    if (hasHourlySlots) {
+      for (const slot of editTariffSlots) {
+        if (slot.rate <= 0) {
+          Alert.alert("Validation Error", "All rates must be greater than 0");
+          return false;
+        }
+        if (slot.toHour <= slot.fromHour) {
+          Alert.alert(
+            "Validation Error",
+            "To hour must be greater than from hour",
+          );
+          return false;
+        }
       }
     }
+
+    if (
+      hasPerDay &&
+      (isNaN(parseFloat(editPerDayRate)) || parseFloat(editPerDayRate) <= 0)
+    ) {
+      Alert.alert("Validation Error", "Per-day rate must be a positive number");
+      return false;
+    }
+
     return true;
   };
 
   const handleCreateTariff = async () => {
     if (!validateForm()) return;
+
+    const hasHourlySlots = tariffSlots.some((slot) => slot.rate > 0);
+
+    // Build final slots — append 96->120 per-day slot if provided
+    const finalSlots = hasHourlySlots ? [...tariffSlots] : [];
+    if (perDayRate !== "") {
+      finalSlots.push({
+        id: "perday",
+        fromHour: 96,
+        toHour: 120,
+        rate: parseFloat(perDayRate),
+      });
+    }
 
     setLoading(true);
     try {
@@ -316,7 +375,7 @@ export default function TariffPage() {
         body: JSON.stringify({
           vehicleName: vehicleName.trim(),
           locationId: selectedLocation?.id,
-          tariffs: tariffSlots.map(({ fromHour, toHour, rate }) => ({
+          tariffs: finalSlots.map(({ fromHour, toHour, rate }) => ({
             fromHour,
             toHour,
             rate,
@@ -350,6 +409,19 @@ export default function TariffPage() {
   const handleUpdateTariff = async () => {
     if (!validateEditForm() || !editingTariff) return;
 
+    const hasHourlySlots = editTariffSlots.some((slot) => slot.rate > 0);
+
+    // Build final slots — append 96->120 per-day slot if provided
+    const finalSlots = hasHourlySlots ? [...editTariffSlots] : [];
+    if (editPerDayRate !== "") {
+      finalSlots.push({
+        id: "perday",
+        fromHour: 96,
+        toHour: 120,
+        rate: parseFloat(editPerDayRate),
+      });
+    }
+
     setLoading(true);
     try {
       const response = await fetch(
@@ -362,7 +434,7 @@ export default function TariffPage() {
           body: JSON.stringify({
             vehicleName: editVehicleName.trim(),
             locationId: editSelectedLocation?.id,
-            slots: editTariffSlots.map(({ fromHour, toHour, rate }) => ({
+            slots: finalSlots.map(({ fromHour, toHour, rate }) => ({
               fromHour,
               toHour,
               rate,
@@ -388,8 +460,10 @@ export default function TariffPage() {
         Alert.alert("Update Failed", data.message || "Something went wrong");
       }
     } catch (error: any) {
-      console.log("CREATE TARIFF ERROR:", error);
+      console.log("UPDATE TARIFF ERROR:", error);
       Alert.alert("Error", error?.message || "Network error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -428,9 +502,18 @@ export default function TariffPage() {
     setEditVehicleName(tariff.vehicleName);
     const location = locations.find((l) => l.id === tariff.locationId);
     setEditSelectedLocation(location || null);
-    setEditTariffSlots(
-      tariff.slots.map((slot) => ({ ...slot, id: slot.id?.toString() })),
+
+    // Extract 96->120 slot as per-day rate and exclude it from editable slots
+    const perDaySlot = tariff.slots.find(
+      (s) => s.fromHour === 96 && s.toHour === 120,
     );
+    setEditPerDayRate(perDaySlot ? perDaySlot.rate.toString() : "");
+    setEditTariffSlots(
+      tariff.slots
+        .filter((s) => !(s.fromHour === 96 && s.toHour === 120))
+        .map((slot) => ({ ...slot, id: slot.id?.toString() })),
+    );
+
     setEditModalVisible(true);
   };
 
@@ -438,6 +521,7 @@ export default function TariffPage() {
     setVehicleName("");
     setSelectedLocation(null);
     setTariffSlots([{ id: "1", fromHour: 0, toHour: 1, rate: 0 }]);
+    setPerDayRate("");
   };
 
   const selectLocation = (location: Location) => {
@@ -460,54 +544,72 @@ export default function TariffPage() {
     setEditLocationDropdownVisible(false);
   };
 
-  const renderTariffItem = ({ item }: { item: Tariff }) => (
-    <TouchableOpacity
-      style={styles.tariffCard}
-      activeOpacity={0.7}
-      onPress={() => openEditModal(item)}
-      onLongPress={() => handleDeleteTariff(item.id)}
-    >
-      <View style={styles.tariffCardHeader}>
-        <View style={styles.tariffIconContainer}>
-          <Text style={styles.tariffIcon}>💰</Text>
-        </View>
-        <View style={styles.tariffStatus}>
-          <Text style={styles.tariffLocation}>{item.locationName}</Text>
-        </View>
-      </View>
+  const renderTariffItem = ({ item }: { item: Tariff }) => {
+    // Detect 96->120 slot as per-day rate for display
+    const perDaySlot = item.slots.find(
+      (s) => s.fromHour === 96 && s.toHour === 120,
+    );
+    const regularSlots = item.slots.filter(
+      (s) => !(s.fromHour === 96 && s.toHour === 120),
+    );
 
-      <Text style={styles.tariffVehicleName}>{item.vehicleName}</Text>
-
-      <View style={styles.tariffSlotsContainer}>
-        <Text style={styles.tariffSlotsTitle}>Rate Slots:</Text>
-        {item.slots.map((slot, index) => (
-          <View key={index} style={styles.tariffSlotRow}>
-            <Text style={styles.tariffSlotText}>
-              {slot.fromHour}h - {slot.toHour}h
-            </Text>
-            <Text style={styles.tariffSlotRate}>₹{slot.rate}</Text>
+    return (
+      <TouchableOpacity
+        style={styles.tariffCard}
+        activeOpacity={0.7}
+        onPress={() => openEditModal(item)}
+        onLongPress={() => handleDeleteTariff(item.id)}
+      >
+        <View style={styles.tariffCardHeader}>
+          <View style={styles.tariffIconContainer}>
+            <Text style={styles.tariffIcon}>💰</Text>
           </View>
-        ))}
-      </View>
+          <View style={styles.tariffStatus}>
+            <Text style={styles.tariffLocation}>{item.locationName}</Text>
+          </View>
+        </View>
 
-      <View style={styles.tariffActions}>
-        <TouchableOpacity
-          style={styles.tariffEditButton}
-          onPress={() => openEditModal(item)}
-        >
-          <Text style={styles.tariffEditIcon}>✏️</Text>
-          <Text style={styles.tariffEditText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.tariffDeleteButton}
-          onPress={() => handleDeleteTariff(item.id)}
-        >
-          <Text style={styles.tariffDeleteIcon}>🗑️</Text>
-          <Text style={styles.tariffDeleteText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+        <Text style={styles.tariffVehicleName}>{item.vehicleName}</Text>
+
+        <View style={styles.tariffSlotsContainer}>
+          <Text style={styles.tariffSlotsTitle}>Rate Slots:</Text>
+          {regularSlots.map((slot, index) => (
+            <View key={index} style={styles.tariffSlotRow}>
+              <Text style={styles.tariffSlotText}>
+                {slot.fromHour}h - {slot.toHour}h
+              </Text>
+              <Text style={styles.tariffSlotRate}>₹{slot.rate}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Show per-day rate separately if 96->120 slot exists */}
+        {perDaySlot && (
+          <View style={styles.perDayRateContainer}>
+            <Text style={styles.perDayRateLabel}>📅 After 96 hrs:</Text>
+            <Text style={styles.perDayRateValue}>₹{perDaySlot.rate} / day</Text>
+          </View>
+        )}
+
+        <View style={styles.tariffActions}>
+          <TouchableOpacity
+            style={styles.tariffEditButton}
+            onPress={() => openEditModal(item)}
+          >
+            <Text style={styles.tariffEditIcon}>✏️</Text>
+            <Text style={styles.tariffEditText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.tariffDeleteButton}
+            onPress={() => handleDeleteTariff(item.id)}
+          >
+            <Text style={styles.tariffDeleteIcon}>🗑️</Text>
+            <Text style={styles.tariffDeleteText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const renderTariffSlots = (slots: TariffSlot[], isEdit: boolean = false) => {
     const currentSlots = isEdit ? editTariffSlots : tariffSlots;
@@ -574,6 +676,32 @@ export default function TariffPage() {
       </View>
     );
   };
+
+  // Reusable per-day rate input for both create and edit
+  const renderPerDayRateInput = (
+    value: string,
+    onChange: (v: string) => void,
+  ) => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.inputLabel}>
+        Per-Day Rate (₹) — applied after 96 hours
+      </Text>
+      <View style={styles.inputWrapper}>
+        <Text style={styles.inputIcon}>📅</Text>
+        <TextInput
+          style={styles.input}
+          value={value}
+          onChangeText={onChange}
+          keyboardType="numeric"
+          placeholder="Enter amount per day (optional)"
+          placeholderTextColor="#999"
+        />
+      </View>
+      <Text style={styles.perDayRateHint}>
+        Stored as slot: 96h → 120h at this rate
+      </Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -712,6 +840,9 @@ export default function TariffPage() {
 
                 {/* Tariff Slots */}
                 {renderTariffSlots(tariffSlots, false)}
+
+                {/* Per-Day Rate */}
+                {renderPerDayRateInput(perDayRate, setPerDayRate)}
 
                 {/* Create Button */}
                 <TouchableOpacity
@@ -1054,6 +1185,9 @@ export default function TariffPage() {
 
                     {/* Edit Tariff Slots */}
                     {renderTariffSlots(editTariffSlots, true)}
+
+                    {/* Per-Day Rate in edit modal */}
+                    {renderPerDayRateInput(editPerDayRate, setEditPerDayRate)}
 
                     {/* Update Button */}
                     <TouchableOpacity
@@ -1488,6 +1622,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#d32f2f",
+  },
+  perDayRateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(211, 47, 47, 0.06)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(211, 47, 47, 0.15)",
+  },
+  perDayRateLabel: {
+    fontSize: 13,
+    color: "#555",
+    fontWeight: "600",
+  },
+  perDayRateValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#d32f2f",
+  },
+  perDayRateHint: {
+    fontSize: 11,
+    color: "#888",
+    marginTop: 6,
+    fontStyle: "italic",
   },
   tariffActions: {
     flexDirection: "row",
