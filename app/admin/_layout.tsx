@@ -29,16 +29,20 @@ export default function AdminLayout() {
         tabBarIcon: ({ focused, color }) => {
           const icons = TAB_ICONS[route.name];
           if (!icons) return null;
-          
+
           return (
-            <View style={[
-              styles.iconContainer,
-              focused && styles.iconContainerActive
-            ]}>
-              <Text style={[
-                styles.icon,
-                { color: focused ? "#d32f2f" : "rgba(0,0,0,0.5)" }
-              ]}>
+            <View
+              style={[
+                styles.iconContainer,
+                focused && styles.iconContainerActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.icon,
+                  { color: focused ? "#d32f2f" : "rgba(0,0,0,0.5)" },
+                ]}
+              >
                 {focused ? icons.active : icons.icon}
               </Text>
             </View>
@@ -74,29 +78,30 @@ export default function AdminLayout() {
           title: "Settings",
         }}
       />
-      
+
       {/* Hidden Tabs */}
       <Tabs.Screen name="location/index" options={{ href: null }} />
       <Tabs.Screen name="staff" options={{ href: null }} />
       <Tabs.Screen name="tariff" options={{ href: null }} />
+      <Tabs.Screen name="vehicle-type" options={{ href: null }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
     height: 70,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderTopWidth: 0,
     elevation: 0,
     borderRadius: 35,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 12,
@@ -108,19 +113,19 @@ const styles = StyleSheet.create({
   },
   tabBarLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 6,
   },
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 8,
   },
   iconContainerActive: {
-    backgroundColor: 'rgba(211, 47, 47, 0.1)',
+    backgroundColor: "rgba(211, 47, 47, 0.1)",
     transform: [{ scale: 1.1 }],
   },
   icon: {
