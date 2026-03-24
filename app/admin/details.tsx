@@ -1,4 +1,4 @@
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
   Dimensions,
@@ -8,27 +8,59 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const menuItems = [
-  { id: 1, name: "Location", icon: "📍", route: "/admin/location", count: 12, color: "#FF6B6B" },
-  { id: 2, name: "Staff Registration", icon: "👨‍💼", route: "/admin/staff", count: 8, color: "#4ECDC4" },
-  { id: 3, name: "Tariff", icon: "💰", route: "/admin/tariff", count: 6, color: "#FFD93D" },
-  { id: 4, name: "Parking Slots", icon: "🅿️",  count: 24, color: "#6C5CE7" },
+  {
+    id: 1,
+    name: "Location",
+    icon: "📍",
+    route: "/admin/location",
+    count: 12,
+    color: "#FF6B6B",
+  },
+  {
+    id: 2,
+    name: "Staff Registration",
+    icon: "👨‍💼",
+    route: "/admin/staff",
+    count: 8,
+    color: "#4ECDC4",
+  },
+  {
+    id: 3,
+    name: "Tariff",
+    icon: "💰",
+    route: "/admin/tariff",
+    count: 6,
+    color: "#FFD93D",
+  },
+  { id: 4, name: "Parking Slots", icon: "🅿️", count: 24, color: "#6C5CE7" },
+  {
+    id: 5,
+    name: "Vehicle Type",
+    icon: "🚗",
+    route: "/admin/vehicle-type",
+    count: 5,
+    color: "#FF9F43",
+  },
 ];
 
 export default function Details() {
   // Calculate total items
-  const totalItems = menuItems.reduce((acc, item) => acc + (item.count || 0), 0);
+  const totalItems = menuItems.reduce(
+    (acc, item) => acc + (item.count || 0),
+    0,
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
-      <ScrollView 
+
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -36,7 +68,9 @@ export default function Details() {
         <View style={styles.welcomeSection}>
           <View>
             <Text style={styles.welcomeTitle}>Dashboard</Text>
-            <Text style={styles.welcomeSubtitle}>Manage your parking system</Text>
+            <Text style={styles.welcomeSubtitle}>
+              Manage your parking system
+            </Text>
           </View>
           <View style={styles.statsBadge}>
             <Text style={styles.statsBadgeText}>{totalItems} total items</Text>
@@ -53,15 +87,22 @@ export default function Details() {
               activeOpacity={0.7}
             >
               <LinearGradient
-                colors={['#ffffff', '#f8f9fa']}
+                colors={["#ffffff", "#f8f9fa"]}
                 style={styles.cardGradient}
               >
-                <View style={[styles.iconContainer, { backgroundColor: `${item.color}15` }]}>
+                <View
+                  style={[
+                    styles.iconContainer,
+                    { backgroundColor: `${item.color}15` },
+                  ]}
+                >
                   <Text style={styles.icon}>{item.icon}</Text>
                 </View>
-                
+
                 <View style={styles.cardContent}>
-                  <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {item.name}
+                  </Text>
                   <View style={styles.countBadge}>
                     <Text style={styles.count}>{item.count}</Text>
                   </View>
@@ -81,7 +122,7 @@ export default function Details() {
         {/* Recent Activity Section */}
         <View style={styles.activitySection}>
           <Text style={styles.activityTitle}>Recent Activity</Text>
-          
+
           <View style={styles.activityCard}>
             <View style={styles.activityItem}>
               <View style={styles.activityIconContainer}>
@@ -149,9 +190,9 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   welcomeSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 25,
   },
   welcomeTitle: {

@@ -12,9 +12,8 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
-
 
 // Define the Vehicle Type interface (simplified - no icons)
 interface VehicleType {
@@ -29,19 +28,20 @@ export default function EntryTab() {
   const [districtCode, setDistrictCode] = useState("");
   const [seriesCode, setSeriesCode] = useState("");
   const [number, setNumber] = useState("");
-  
+
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
-  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleType | null>(null);
+  const [selectedVehicleType, setSelectedVehicleType] =
+    useState<VehicleType | null>(null);
   const [driverName, setDriverName] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  
+
   // Loading states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Dropdown state
   const [stateDropdownVisible, setStateDropdownVisible] = useState(false);
-  
+
   // Advance payment modal states
   const [advanceModalVisible, setAdvanceModalVisible] = useState(false);
   const [advanceAmount, setAdvanceAmount] = useState("");
@@ -51,16 +51,16 @@ export default function EntryTab() {
   const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   const STATE_CODES = ["KL", "TN", "KA", "AP"];
-useEffect(() => {
-  loadUser();
-}, []);
+  useEffect(() => {
+    loadUser();
+  }, []);
 
-const loadUser = async () => {
-  const storedUser = await AsyncStorage.getItem("user");
-  if (storedUser) {
-    setUser(JSON.parse(storedUser));
-  }
-};
+  const loadUser = async () => {
+    const storedUser = await AsyncStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  };
   // Fetch vehicle types from API
   useEffect(() => {
     fetchVehicleTypes();
@@ -70,29 +70,29 @@ const loadUser = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_BASE_URL}/VehicleTypes`);
-      
+
+      const response = await fetch(`${API_BASE_URL}/VehicleTypes/list`);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch vehicle types');
+        throw new Error("Failed to fetch vehicle types");
       }
-      
+
       const data = await response.json();
-      
+
       const transformedData = data.map((item: any) => ({
         id: item.id.toString(),
-        name: item.name
+        name: item.type,
       }));
-      
+
       setVehicleTypes(transformedData);
-      
+
       if (transformedData.length > 0) {
         setSelectedVehicleType(transformedData[0]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error fetching vehicle types:', err);
-      
+      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Error fetching vehicle types:", err);
+
       const fallbackTypes = getDefaultVehicleTypes();
       setVehicleTypes(fallbackTypes);
       setSelectedVehicleType(fallbackTypes[0]);
@@ -103,27 +103,27 @@ const loadUser = async () => {
 
   const getDefaultVehicleTypes = (): VehicleType[] => {
     return [
-      { id: '1', name: 'Car' },
-      { id: '2', name: 'Bike' },
-      { id: '3', name: 'Truck' },
-      { id: '4', name: 'Van' },
-      { id: '5', name: 'Bus' },
-      { id: '6', name: 'Auto' },
+      { id: "1", name: "Car" },
+      { id: "2", name: "Bike" },
+      { id: "3", name: "Truck" },
+      { id: "4", name: "Van" },
+      { id: "5", name: "Bus" },
+      { id: "6", name: "Auto" },
     ];
   };
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
+      "keyboardDidShow",
       (e) => {
         setKeyboardOffset(e.endCoordinates.height);
-      }
+      },
     );
     const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
+      "keyboardDidHide",
       () => {
         setKeyboardOffset(0);
-      }
+      },
     );
 
     return () => {
@@ -156,109 +156,114 @@ const loadUser = async () => {
 
     // Updated validation to allow alphanumeric for district and series
     if (districtCode && !/^[A-Z0-9]{1,2}$/.test(districtCode)) {
-      Alert.alert("Invalid", "District code should contain only letters and numbers");
+      Alert.alert(
+        "Invalid",
+        "District code should contain only letters and numbers",
+      );
       return;
     }
     if (seriesCode && !/^[A-Z0-9]{1,2}$/.test(seriesCode)) {
-      Alert.alert("Invalid", "Series code should contain only letters and numbers");
+      Alert.alert(
+        "Invalid",
+        "Series code should contain only letters and numbers",
+      );
       return;
     }
 
     const finalDistrictCode = districtCode || "XX";
     const finalSeriesCode = seriesCode || "XX";
-    
+
     const fullVehicleNumber = `${stateCode} ${finalDistrictCode} ${finalSeriesCode} ${number}`;
-    
+
     setTempVehicleData({
       vehicleNumber: fullVehicleNumber,
       vehicleType: selectedVehicleType,
       driverName: driverName.trim() || undefined,
     });
-    
+
     setAdvanceModalVisible(true);
   };
 
-const handleAdvanceSubmit = async () => {
-  Keyboard.dismiss();
-  
-  if (!advanceAmount.trim()) {
-    Alert.alert("Required", "Please enter advance amount");
-    return;
-  }
+  const handleAdvanceSubmit = async () => {
+    Keyboard.dismiss();
 
-  const amount = parseFloat(advanceAmount);
-  if (isNaN(amount) || amount <= 0) {
-    Alert.alert("Invalid", "Please enter a valid amount");
-    return;
-  }
-
-  if (!user) {
-    Alert.alert("Error", "User not found. Please login again.");
-    return;
-  }
-
-  // ✅ Debug: Log the user object to see what's inside
-  console.log("Full User Object:", user);
-  console.log("User ID:", user.userId);
-  console.log("User ID Type:", typeof user.userId);
-
-  // ✅ Ensure userId is parsed as a number (not string)
-  const createdStaffId = parseInt(user.userId) || 0;
-
-  if (createdStaffId === 0) {
-    Alert.alert("Error", "Invalid user ID. Please login again.");
-    return;
-  }
-
-  const apiPayload = {
-    vehicleNumber: tempVehicleData.vehicleNumber,
-    vehicleOwnerNumber: "",
-    vehicleTypeId: parseInt(tempVehicleData.vehicleType.id), // ✅ Parse as int
-    advanceAmount: amount, // ✅ Use parsed amount
-    createdStaffId: createdStaffId // ✅ Use parsed staff ID
-  };
-
-  console.log("API Payload:", apiPayload);
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/Parking/CheckIn`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(apiPayload)
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      Alert.alert("Success", "Vehicle checked in successfully!");
-      
-      // Reset form
-      setSubmitted(true);
-      setTimeout(() => {
-        setStateCode("KL");
-        setDistrictCode("");
-        setSeriesCode("");
-        setNumber("");
-        setDriverName("");
-        setAdvanceAmount("");
-        setAdvanceModalVisible(false);
-        setTempVehicleData(null);
-        setSubmitted(false);
-      }, 2000);
-    } else {
-      Alert.alert("Error", result.message || "Check-in failed");
-      console.error("API Error:", result);
+    if (!advanceAmount.trim()) {
+      Alert.alert("Required", "Please enter advance amount");
+      return;
     }
 
-    console.log("Response:", result);
+    const amount = parseFloat(advanceAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Invalid", "Please enter a valid amount");
+      return;
+    }
 
-  } catch (error) {
-    console.error("Checkin error:", error);
-    Alert.alert("Error", "Failed to connect to server");
-  }
-};
+    if (!user) {
+      Alert.alert("Error", "User not found. Please login again.");
+      return;
+    }
+
+    // ✅ Debug: Log the user object to see what's inside
+    console.log("Full User Object:", user);
+    console.log("User ID:", user.userId);
+    console.log("User ID Type:", typeof user.userId);
+
+    // ✅ Ensure userId is parsed as a number (not string)
+    const createdStaffId = parseInt(user.userId) || 0;
+
+    if (createdStaffId === 0) {
+      Alert.alert("Error", "Invalid user ID. Please login again.");
+      return;
+    }
+
+    const apiPayload = {
+      vehicleNumber: tempVehicleData.vehicleNumber,
+      vehicleOwnerNumber: "",
+      vehicleTypeId: parseInt(tempVehicleData.vehicleType.id), // ✅ Parse as int
+      advanceAmount: amount, // ✅ Use parsed amount
+      createdStaffId: createdStaffId, // ✅ Use parsed staff ID
+    };
+
+    console.log("API Payload:", apiPayload);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/Parking/CheckIn`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(apiPayload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        Alert.alert("Success", "Vehicle checked in successfully!");
+
+        // Reset form
+        setSubmitted(true);
+        setTimeout(() => {
+          setStateCode("KL");
+          setDistrictCode("");
+          setSeriesCode("");
+          setNumber("");
+          setDriverName("");
+          setAdvanceAmount("");
+          setAdvanceModalVisible(false);
+          setTempVehicleData(null);
+          setSubmitted(false);
+        }, 2000);
+      } else {
+        Alert.alert("Error", result.message || "Check-in failed");
+        console.error("API Error:", result);
+      }
+
+      console.log("Response:", result);
+    } catch (error) {
+      console.error("Checkin error:", error);
+      Alert.alert("Error", "Failed to connect to server");
+    }
+  };
   const closeAdvanceModal = () => {
     setAdvanceModalVisible(false);
     setAdvanceAmount("");
@@ -274,16 +279,19 @@ const handleAdvanceSubmit = async () => {
 
   // Updated to accept both letters and numbers
   const formatAlphanumericInput = (text: string) => {
-    return text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 2);
+    return text
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 2);
   };
 
   const formatNumberInput = (text: string) => {
-    return text.replace(/[^0-9]/g, '').slice(0, 4);
+    return text.replace(/[^0-9]/g, "").slice(0, 4);
   };
 
   const renderVehicleTypeChip = (type: VehicleType) => {
     const isActive = selectedVehicleType?.id === type.id;
-    
+
     return (
       <TouchableOpacity
         key={type.id}
@@ -293,7 +301,9 @@ const handleAdvanceSubmit = async () => {
           setStateDropdownVisible(false);
         }}
       >
-        <Text style={[styles.typeChipText, isActive && styles.typeChipTextActive]}>
+        <Text
+          style={[styles.typeChipText, isActive && styles.typeChipTextActive]}
+        >
           {type.name}
         </Text>
       </TouchableOpacity>
@@ -303,25 +313,27 @@ const handleAdvanceSubmit = async () => {
   return (
     <TouchableWithoutFeedback onPress={handleOutsidePress}>
       <View style={{ flex: 1 }}>
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={[
             styles.tabContent,
-            { paddingBottom: keyboardOffset > 0 ? keyboardOffset + 20 : 32 }
+            { paddingBottom: keyboardOffset > 0 ? keyboardOffset + 20 : 32 },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.card}>
             <Text style={styles.cardTitle}>🚗 Vehicle Entry</Text>
-            <Text style={styles.cardSubtitle}>Log a new vehicle entering the parking</Text>
+            <Text style={styles.cardSubtitle}>
+              Log a new vehicle entering the parking
+            </Text>
 
             <Text style={styles.fieldLabel}>Vehicle Number *</Text>
-            
+
             {/* Vehicle Number Input Container with Dropdown */}
             <View style={styles.vehicleNumberContainer}>
               <View style={styles.vehicleNumberRow}>
                 {/* State Code Dropdown Button */}
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.vehicleNumberPart}
                   onPress={handleStateButtonPress}
                   activeOpacity={0.7}
@@ -334,7 +346,9 @@ const handleAdvanceSubmit = async () => {
                 <TextInput
                   style={styles.vehicleNumberPart}
                   value={districtCode}
-                  onChangeText={(text) => setDistrictCode(formatAlphanumericInput(text))}
+                  onChangeText={(text) =>
+                    setDistrictCode(formatAlphanumericInput(text))
+                  }
                   maxLength={2}
                   placeholder="XX"
                   placeholderTextColor="#999"
@@ -347,7 +361,9 @@ const handleAdvanceSubmit = async () => {
                 <TextInput
                   style={styles.vehicleNumberPart}
                   value={seriesCode}
-                  onChangeText={(text) => setSeriesCode(formatAlphanumericInput(text))}
+                  onChangeText={(text) =>
+                    setSeriesCode(formatAlphanumericInput(text))
+                  }
                   maxLength={2}
                   placeholder="XX"
                   placeholderTextColor="#999"
@@ -372,24 +388,28 @@ const handleAdvanceSubmit = async () => {
               {/* State Dropdown - positioned relative to container */}
               {stateDropdownVisible && (
                 <>
-                  <TouchableWithoutFeedback onPress={() => setStateDropdownVisible(false)}>
+                  <TouchableWithoutFeedback
+                    onPress={() => setStateDropdownVisible(false)}
+                  >
                     <View style={styles.dropdownBackdrop} />
                   </TouchableWithoutFeedback>
-                  
+
                   <View style={styles.stateDropdown}>
                     {STATE_CODES.map((code) => (
                       <TouchableOpacity
                         key={code}
                         style={[
                           styles.stateOption,
-                          code === stateCode && styles.stateOptionActive
+                          code === stateCode && styles.stateOptionActive,
                         ]}
                         onPress={() => handleStateSelect(code)}
                       >
-                        <Text style={[
-                          styles.stateOptionText,
-                          code === stateCode && styles.stateOptionTextActive
-                        ]}>
+                        <Text
+                          style={[
+                            styles.stateOptionText,
+                            code === stateCode && styles.stateOptionTextActive,
+                          ]}
+                        >
                           {code}
                         </Text>
                         {code === stateCode && (
@@ -413,7 +433,7 @@ const handleAdvanceSubmit = async () => {
             />
 
             <Text style={styles.fieldLabel}>Vehicle Type *</Text>
-            
+
             {loading ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#DC2626" />
@@ -422,7 +442,10 @@ const handleAdvanceSubmit = async () => {
             ) : error ? (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Error: {error}</Text>
-                <TouchableOpacity onPress={fetchVehicleTypes} style={styles.retryButton}>
+                <TouchableOpacity
+                  onPress={fetchVehicleTypes}
+                  style={styles.retryButton}
+                >
                   <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
               </View>
@@ -433,7 +456,10 @@ const handleAdvanceSubmit = async () => {
             )}
 
             <TouchableOpacity
-              style={[styles.submitButton, submitted && styles.submitButtonSuccess]}
+              style={[
+                styles.submitButton,
+                submitted && styles.submitButtonSuccess,
+              ]}
               onPress={handleCheckIn}
               disabled={submitted || loading || !selectedVehicleType}
             >
@@ -474,13 +500,18 @@ const handleAdvanceSubmit = async () => {
           <TouchableWithoutFeedback onPress={closeAdvanceModal}>
             <View style={styles.modalOverlay}>
               <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-                <View style={[
-                  styles.modalContent,
-                  keyboardOffset > 0 && { marginBottom: keyboardOffset / 2 }
-                ]}>
+                <View
+                  style={[
+                    styles.modalContent,
+                    keyboardOffset > 0 && { marginBottom: keyboardOffset / 2 },
+                  ]}
+                >
                   <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Advance Payment</Text>
-                    <TouchableOpacity onPress={closeAdvanceModal} style={styles.modalCloseButton}>
+                    <TouchableOpacity
+                      onPress={closeAdvanceModal}
+                      style={styles.modalCloseButton}
+                    >
                       <Text style={styles.modalCloseIcon}>✕</Text>
                     </TouchableOpacity>
                   </View>
@@ -489,15 +520,21 @@ const handleAdvanceSubmit = async () => {
                     {tempVehicleData && (
                       <View style={styles.vehiclePreview}>
                         <Text style={styles.previewLabel}>Vehicle Number</Text>
-                        <Text style={styles.previewValue}>{tempVehicleData.vehicleNumber}</Text>
+                        <Text style={styles.previewValue}>
+                          {tempVehicleData.vehicleNumber}
+                        </Text>
                         <View style={styles.previewDivider} />
                         <Text style={styles.previewLabel}>Vehicle Type</Text>
-                        <Text style={styles.previewValue}>{tempVehicleData.vehicleType.name}</Text>
+                        <Text style={styles.previewValue}>
+                          {tempVehicleData.vehicleType.name}
+                        </Text>
                         {tempVehicleData.driverName && (
                           <>
                             <View style={styles.previewDivider} />
                             <Text style={styles.previewLabel}>Driver</Text>
-                            <Text style={styles.previewValue}>{tempVehicleData.driverName}</Text>
+                            <Text style={styles.previewValue}>
+                              {tempVehicleData.driverName}
+                            </Text>
                           </>
                         )}
                       </View>
@@ -515,13 +552,13 @@ const handleAdvanceSubmit = async () => {
                     />
 
                     <View style={styles.modalActions}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.modalCancelButton}
                         onPress={closeAdvanceModal}
                       >
                         <Text style={styles.modalCancelText}>Cancel</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={styles.modalSubmitButton}
                         onPress={handleAdvanceSubmit}
                       >
@@ -540,8 +577,8 @@ const handleAdvanceSubmit = async () => {
 }
 
 const styles = StyleSheet.create({
-  tabContent: { 
-    padding: 16, 
+  tabContent: {
+    padding: 16,
     paddingBottom: 32,
     flexGrow: 1,
   },
@@ -556,9 +593,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  cardTitle: { fontSize: 16, fontWeight: "700", color: "#1a1a1a", marginBottom: 4 },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 4,
+  },
   cardSubtitle: { fontSize: 13, color: "#888", marginBottom: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: "600", color: "#444", marginBottom: 6, marginTop: 4 },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#444",
+    marginBottom: 6,
+    marginTop: 4,
+  },
   input: {
     borderWidth: 1.5,
     borderColor: "#e8e8e8",
@@ -569,7 +617,7 @@ const styles = StyleSheet.create({
     color: "#222",
   },
   vehicleNumberContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 16,
     zIndex: 1000,
   },
@@ -605,7 +653,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   dropdownBackdrop: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: -18,
     right: -18,
@@ -627,7 +675,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     zIndex: 999,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   stateOption: {
     flexDirection: "row",
@@ -656,40 +704,40 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: "#666",
     fontSize: 14,
   },
   errorContainer: {
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   errorText: {
-    color: '#DC2626',
+    color: "#DC2626",
     marginBottom: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   retryButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: "#DC2626",
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-  typeRow: { 
-    flexDirection: "row", 
-    gap: 10, 
-    flexWrap: "wrap", 
-    marginBottom: 4 
+  typeRow: {
+    flexDirection: "row",
+    gap: 10,
+    flexWrap: "wrap",
+    marginBottom: 4,
   },
   typeChip: {
     paddingHorizontal: 16,
@@ -699,17 +747,17 @@ const styles = StyleSheet.create({
     borderColor: "#e0e0e0",
     backgroundColor: "#fafafa",
   },
-  typeChipActive: { 
-    backgroundColor: "#DC2626", 
-    borderColor: "#DC2626" 
+  typeChipActive: {
+    backgroundColor: "#DC2626",
+    borderColor: "#DC2626",
   },
-  typeChipText: { 
-    fontSize: 14, 
-    color: "#555", 
-    fontWeight: "500" 
+  typeChipText: {
+    fontSize: 14,
+    color: "#555",
+    fontWeight: "500",
   },
-  typeChipTextActive: { 
-    color: "#fff" 
+  typeChipTextActive: {
+    color: "#fff",
   },
   submitButton: {
     backgroundColor: "#DC2626",
@@ -720,7 +768,11 @@ const styles = StyleSheet.create({
   },
   submitButtonSuccess: { backgroundColor: "#16a34a" },
   submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  summaryRow: { flexDirection: "row", justifyContent: "space-around", paddingTop: 8 },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingTop: 8,
+  },
   summaryItem: { alignItems: "center" },
   summaryNumber: { fontSize: 28, fontWeight: "800", color: "#DC2626" },
   summaryLabel: { fontSize: 12, color: "#888", marginTop: 2 },
