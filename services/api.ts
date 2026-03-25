@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
-export const API_BASE_URL = "http://172.24.91.224:5123/api";
+export const API_BASE_URL = "http://172.20.10.3:5123/api";
 // 🔥 Common API function
 export const apiFetch = async (endpoint: string, options: any = {}) => {
   let token = await AsyncStorage.getItem("token");

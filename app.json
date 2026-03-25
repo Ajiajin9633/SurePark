@@ -28,7 +28,12 @@
       "usesCleartextTraffic": true,
       "permissions": [
         "INTERNET",
-        "INTERNET"
+        "INTERNET",
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION"
       ],
       "package": "com.anonymous.SafePark"
     },
@@ -49,7 +54,8 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "react-native-ble-plx"
     ],
     "experiments": {
       "typedRoutes": true,
