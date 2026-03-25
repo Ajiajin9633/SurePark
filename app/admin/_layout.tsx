@@ -15,13 +15,6 @@ export default function AdminLayout() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarBackground: () => (
-          <BlurView
-            tint="light"
-            intensity={80}
-            style={StyleSheet.absoluteFill}
-          />
-        ),
         tabBarShowLabel: true,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarActiveTintColor: "#d32f2f",
@@ -90,24 +83,17 @@ export default function AdminLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
     height: 70,
-    backgroundColor: "transparent",
-    borderTopWidth: 0,
-    elevation: 0,
-    borderRadius: 35,
+    backgroundColor: "#ffffff",
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    elevation: 8,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
       },
     }),
   },
@@ -125,7 +111,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   iconContainerActive: {
-    backgroundColor: "rgba(211, 47, 47, 0.1)",
+    backgroundColor: "#fbe9e9",
     transform: [{ scale: 1.1 }],
   },
   icon: {

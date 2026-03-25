@@ -19,6 +19,7 @@ import {
 interface VehicleType {
   id: string;
   name: string;
+  icon: string;
 }
 
 export default function EntryTab() {
@@ -34,6 +35,11 @@ export default function EntryTab() {
     useState<VehicleType | null>(null);
   const [driverName, setDriverName] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [todaySummary, setTodaySummary] = useState({
+    entries: 0,
+    exits: 0,
+    parked: 0,
+  });
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -58,20 +64,35 @@ export default function EntryTab() {
   const loadUser = async () => {
     const storedUser = await AsyncStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      await fetchVehicleTypes(parsedUser.userId);
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/Parking/TodaySummary/${parsedUser.userId}`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setTodaySummary(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch summary:", err);
+      }
     }
   };
   // Fetch vehicle types from API
-  useEffect(() => {
-    fetchVehicleTypes();
-  }, []);
+  // useEffect(() => {
+  //   fetchVehicleTypes();
+  // }, []);
 
-  const fetchVehicleTypes = async () => {
+  const fetchVehicleTypes = async (userId: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/VehicleTypes/list`);
+      const response = await fetch(
+        `${API_BASE_URL}/Parking/VehicleTypesForLocation/${userId}`
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch vehicle types");
@@ -82,6 +103,7 @@ export default function EntryTab() {
       const transformedData = data.map((item: any) => ({
         id: item.id.toString(),
         name: item.type,
+        icon: item.icon || "",
       }));
 
       setVehicleTypes(transformedData);
@@ -103,12 +125,12 @@ export default function EntryTab() {
 
   const getDefaultVehicleTypes = (): VehicleType[] => {
     return [
-      { id: "1", name: "Car" },
-      { id: "2", name: "Bike" },
-      { id: "3", name: "Truck" },
-      { id: "4", name: "Van" },
-      { id: "5", name: "Bus" },
-      { id: "6", name: "Auto" },
+      { id: "1", name: "Car", icon: "🚗" },
+      { id: "2", name: "Bike", icon: "🏍️" },
+      { id: "3", name: "Truck", icon: "🚛" },
+      { id: "4", name: "Van", icon: "🚐" },
+      { id: "5", name: "Bus", icon: "🚌" },
+      { id: "6", name: "Auto", icon: "🛺" },
     ];
   };
 
@@ -301,11 +323,7 @@ export default function EntryTab() {
           setStateDropdownVisible(false);
         }}
       >
-        <Text
-          style={[styles.typeChipText, isActive && styles.typeChipTextActive]}
-        >
-          {type.name}
-        </Text>
+        <Text style={styles.typeChipIcon}>{type.icon}</Text>
       </TouchableOpacity>
     );
   };
@@ -443,9 +461,9 @@ export default function EntryTab() {
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Error: {error}</Text>
                 <TouchableOpacity
-                  onPress={fetchVehicleTypes}
-                  style={styles.retryButton}
-                >
+  onPress={() => fetchVehicleTypes(user?.userId)}
+  style={styles.retryButton}
+>
                   <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
               </View>
@@ -473,17 +491,17 @@ export default function EntryTab() {
             <Text style={styles.cardTitle}>📋 Today's Summary</Text>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryNumber}>24</Text>
+                <Text style={styles.summaryNumber}>{todaySummary.entries}</Text>
                 <Text style={styles.summaryLabel}>Entries</Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryNumber}>18</Text>
+                <Text style={styles.summaryNumber}>{todaySummary.exits}</Text>
                 <Text style={styles.summaryLabel}>Exits</Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryNumber}>6</Text>
+                <Text style={styles.summaryNumber}>{todaySummary.parked}</Text>
                 <Text style={styles.summaryLabel}>Parked</Text>
               </View>
             </View>
@@ -746,6 +764,12 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#e0e0e0",
     backgroundColor: "#fafafa",
+    alignItems: "center", // ADD
+    justifyContent: "center", // ADD
+  },
+  typeChipIcon: {
+    fontSize: 22,
+    textAlign: "center",
   },
   typeChipActive: {
     backgroundColor: "#DC2626",
