@@ -1,5 +1,6 @@
 import { router, Slot, usePathname } from "expo-router";
-import { Alert, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const TAB_ICONS: Record<string, string> = {
   "index": "🚗",
@@ -57,7 +58,7 @@ export default function StaffLayout() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <StatusBar barStyle="light-content" backgroundColor="#DC2626" />
 
       {/* Common Header */}
