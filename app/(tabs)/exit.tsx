@@ -867,7 +867,7 @@ const styles = StyleSheet.create({
   editableAmountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#fff',
     borderWidth: 1.5,
     borderColor: '#DC2626',
     borderRadius: 8,
@@ -883,7 +883,7 @@ const styles = StyleSheet.create({
   currencySymbolLight: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: '#1a1a1a',
     marginRight: 2,
   },
   inlineEditInput: {
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: '#1a1a1a',
     minWidth: 80,
     textAlign: 'right',
   },

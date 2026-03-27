@@ -33,8 +33,9 @@ export default function EntryTab() {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [selectedVehicleType, setSelectedVehicleType] =
     useState<VehicleType | null>(null);
-  const [driverName, setDriverName] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<0 | 1>(0);
   const [todaySummary, setTodaySummary] = useState({
     entries: 0,
     exits: 0,
@@ -91,7 +92,7 @@ export default function EntryTab() {
       setError(null);
 
       const response = await fetch(
-        `${API_BASE_URL}/Parking/VehicleTypesForLocation/${userId}`
+        `${API_BASE_URL}/Parking/VehicleTypesForLocation/${userId}`,
       );
 
       if (!response.ok) {
@@ -195,12 +196,17 @@ export default function EntryTab() {
     const finalDistrictCode = districtCode || "XX";
     const finalSeriesCode = seriesCode || "XX";
 
+    if (ownerPhone.trim() && ownerPhone.trim().length !== 10) {
+      Alert.alert("Invalid", "Phone number must be exactly 10 digits");
+      return;
+    }
+
     const fullVehicleNumber = `${stateCode} ${finalDistrictCode} ${finalSeriesCode} ${number}`;
 
     setTempVehicleData({
       vehicleNumber: fullVehicleNumber,
       vehicleType: selectedVehicleType,
-      driverName: driverName.trim() || undefined,
+      ownerPhone: ownerPhone.trim() || "",
     });
 
     setAdvanceModalVisible(true);
@@ -240,13 +246,14 @@ export default function EntryTab() {
 
     const apiPayload = {
       vehicleNumber: tempVehicleData.vehicleNumber,
-      vehicleOwnerNumber: "",
-      vehicleTypeId: parseInt(tempVehicleData.vehicleType.id), // ✅ Parse as int
-      advanceAmount: amount, // ✅ Use parsed amount
-      createdStaffId: createdStaffId, // ✅ Use parsed staff ID
+      vehicleOwnerNumber: tempVehicleData.ownerPhone, // ← CHANGED
+      vehicleTypeId: parseInt(tempVehicleData.vehicleType.id),
+      advanceAmount: amount,
+      createdStaffId: createdStaffId,
+      paymentMode: paymentMode,
     };
 
-    console.log("API Payload:", apiPayload);
+    console.log("API Payload:", JSON.stringify(apiPayload));
 
     try {
       const response = await fetch(`${API_BASE_URL}/Parking/CheckIn`, {
@@ -260,22 +267,26 @@ export default function EntryTab() {
       const result = await response.json();
 
       if (response.ok) {
-        Alert.alert("Success", "Vehicle checked in successfully!");
+  setAdvanceModalVisible(false);
+  setTempVehicleData(null);
+  setAdvanceAmount("");
 
-        // Reset form
-        setSubmitted(true);
-        setTimeout(() => {
-          setStateCode("KL");
-          setDistrictCode("");
-          setSeriesCode("");
-          setNumber("");
-          setDriverName("");
-          setAdvanceAmount("");
-          setAdvanceModalVisible(false);
-          setTempVehicleData(null);
-          setSubmitted(false);
-        }, 2000);
-      } else {
+  Alert.alert("Success", "Vehicle checked in successfully!");
+
+  setStateCode("KL");
+  setDistrictCode("");
+  setSeriesCode("");
+  setNumber("");
+  setOwnerPhone("");
+  setSubmitted(false);
+
+  // ← update summary instantly
+  setTodaySummary(prev => ({
+    entries: prev.entries + 1,
+    exits: prev.exits,
+    parked: prev.parked + 1,
+  }));
+} else {
         Alert.alert("Error", result.message || "Check-in failed");
         console.error("API Error:", result);
       }
@@ -360,18 +371,17 @@ export default function EntryTab() {
                   <Text style={styles.dropdownIcon}>▼</Text>
                 </TouchableOpacity>
 
-                {/* District Code Input - Now accepts letters AND numbers */}
+                {/* District Code Input - Only numbers */}
                 <TextInput
                   style={styles.vehicleNumberPart}
                   value={districtCode}
                   onChangeText={(text) =>
-                    setDistrictCode(formatAlphanumericInput(text))
+                    setDistrictCode(text.replace(/[^0-9]/g, "").slice(0, 2))
                   }
                   maxLength={2}
-                  placeholder="XX"
+                  placeholder="00"
                   placeholderTextColor="#999"
-                  autoCapitalize="characters"
-                  keyboardType="default"
+                  keyboardType="number-pad"
                   onFocus={() => setStateDropdownVisible(false)}
                 />
 
@@ -440,15 +450,45 @@ export default function EntryTab() {
               )}
             </View>
 
-            <Text style={styles.fieldLabel}>Driver Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter driver name (optional)"
-              placeholderTextColor="#aaa"
-              value={driverName}
-              onChangeText={setDriverName}
-              onFocus={() => setStateDropdownVisible(false)}
-            />
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fieldLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="10 digit number"
+                  placeholderTextColor="#aaa"
+                  value={ownerPhone}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/[^0-9]/g, "").slice(0, 10);
+                    setOwnerPhone(cleaned);
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  onFocus={() => setStateDropdownVisible(false)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fieldLabel}>Payment Mode</Text>
+                <View style={styles.segmentWrapper}>
+  <TouchableOpacity
+    style={[styles.segmentBtn, paymentMode === 0 && styles.segmentBtnActive]}
+    onPress={() => setPaymentMode(0)}
+  >
+    <Text style={[styles.segmentTxt, paymentMode === 0 && styles.segmentTxtActive]}>
+      Cash
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    style={[styles.segmentBtn, paymentMode === 1 && styles.segmentBtnActive]}
+    onPress={() => setPaymentMode(1)}
+  >
+    <Text style={[styles.segmentTxt, paymentMode === 1 && styles.segmentTxtActive]}>
+      UPI
+    </Text>
+  </TouchableOpacity>
+</View>
+              </View>
+            </View>
 
             <Text style={styles.fieldLabel}>Vehicle Type *</Text>
 
@@ -461,9 +501,9 @@ export default function EntryTab() {
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Error: {error}</Text>
                 <TouchableOpacity
-  onPress={() => fetchVehicleTypes(user?.userId)}
-  style={styles.retryButton}
->
+                  onPress={() => fetchVehicleTypes(user?.userId)}
+                  style={styles.retryButton}
+                >
                   <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
               </View>
@@ -546,12 +586,12 @@ export default function EntryTab() {
                         <Text style={styles.previewValue}>
                           {tempVehicleData.vehicleType.name}
                         </Text>
-                        {tempVehicleData.driverName && (
+                        {tempVehicleData.ownerPhone && (
                           <>
                             <View style={styles.previewDivider} />
-                            <Text style={styles.previewLabel}>Driver</Text>
+                            <Text style={styles.previewLabel}>Phone</Text>
                             <Text style={styles.previewValue}>
-                              {tempVehicleData.driverName}
+                              {tempVehicleData.ownerPhone}
                             </Text>
                           </>
                         )}
@@ -912,5 +952,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
     fontWeight: "600",
+  },
+  payModeBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#e8e8e8",
+    backgroundColor: "#fafafa",
+    alignItems: "center",
+  },
+  payModeBtnActive: {
+    backgroundColor: "#DC2626",
+    borderColor: "#DC2626",
+  },
+  payModeTxt: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#555",
+  },
+payModeTxtActive: {
+    color: "#fff",
+  },
+  segmentWrapper: {
+    flexDirection: "row",
+    borderWidth: 1.5,
+    borderColor: "#e8e8e8",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  segmentBtnActive: {
+    backgroundColor: "#DC2626",
+  },
+  segmentTxt: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#222",
+  },
+  segmentTxtActive: {
+    color: "#fff",
   },
 });
