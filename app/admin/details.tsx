@@ -1,16 +1,14 @@
+import { AdminHeader } from "@/components/AdminHeader";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
   Dimensions,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { AdminHeader } from "@/components/AdminHeader";
 
 const { width } = Dimensions.get("window");
 
@@ -39,9 +37,27 @@ const menuItems = [
     count: 6,
     color: "#FFD93D",
   },
-   { id: 4, name: "Parking Slots", icon: "🅿️", route: "/admin/parked", count: 24, color: "#6C5CE7" },
+
+  {
+    id: 4,
+    name: "Parking Slots",
+    icon: "🅿️",
+    route: "/admin/parked",
+    count: 24,
+    color: "#6C5CE7",
+  },
+
   {
     id: 5,
+    name: "Collections",
+    icon: "🅿️",
+    route: "/admin/collections",
+    count: 24,
+    color: "#6C5CE7",
+  },
+
+  {
+    id: 6,
     name: "Vehicle Type",
     icon: "🚗",
     route: "/admin/vehicle-type",
