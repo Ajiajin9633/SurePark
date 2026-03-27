@@ -32,7 +32,7 @@ const menuItems = [
   {
     id: 3,
     name: "Tariff",
-    icon: "💰",
+    icon: "🧾",
     route: "/admin/tariff",
     count: 6,
     color: "#FFD93D",
@@ -40,7 +40,7 @@ const menuItems = [
 
   {
     id: 4,
-    name: "Parking Slots",
+    name: "Parked Vehicles",
     icon: "🅿️",
     route: "/admin/parked",
     count: 24,
@@ -50,7 +50,7 @@ const menuItems = [
   {
     id: 5,
     name: "Collections",
-    icon: "🅿️",
+    icon: "💰",
     route: "/admin/collections",
     count: 24,
     color: "#6C5CE7",
