@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TAB_ICONS: Record<string, { icon: string; active: string }> = {
   reports: { icon: "📊", active: "📈" },
@@ -9,15 +10,23 @@ const TAB_ICONS: Record<string, { icon: string; active: string }> = {
 };
 
 export default function AdminLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 70 + insets.bottom,
+            paddingBottom: insets.bottom > 0 ? insets.bottom - 5 : 5,
+          },
+        ],
         tabBarShowLabel: true,
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarActiveTintColor: "#d32f2f",
-        tabBarInactiveTintColor: "rgba(0,0,0,0.5)",
+        tabBarInactiveTintColor: "#8E8E93",
         tabBarIcon: ({ focused, color }) => {
           const icons = TAB_ICONS[route.name];
           if (!icons) return null;
@@ -32,7 +41,7 @@ export default function AdminLayout() {
               <Text
                 style={[
                   styles.icon,
-                  { color: focused ? "#d32f2f" : "rgba(0,0,0,0.5)" },
+                  { color: focused ? "#d32f2f" : "#8E8E93" },
                 ]}
               >
                 {focused ? icons.active : icons.icon}
@@ -76,6 +85,7 @@ export default function AdminLayout() {
       <Tabs.Screen name="staff" options={{ href: null }} />
       <Tabs.Screen name="tariff" options={{ href: null }} />
       <Tabs.Screen name="vehicle-type" options={{ href: null }} />
+      <Tabs.Screen name="parked" options={{ href: null }} />
       <Tabs.Screen name="collections" options={{ href: null }} />
     </Tabs>
   );
@@ -83,17 +93,19 @@ export default function AdminLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 70,
     backgroundColor: "#ffffff",
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
-    elevation: 8,
+    elevation: 20,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.1,
         shadowRadius: 10,
+      },
+      android: {
+        elevation: 8,
       },
     }),
   },
@@ -112,7 +124,6 @@ const styles = StyleSheet.create({
   },
   iconContainerActive: {
     backgroundColor: "#fbe9e9",
-    transform: [{ scale: 1.1 }],
   },
   icon: {
     fontSize: 24,

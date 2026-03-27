@@ -1,10 +1,9 @@
+import { AdminHeader } from "@/components/AdminHeader";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
   Dimensions,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -33,14 +32,32 @@ const menuItems = [
   {
     id: 3,
     name: "Tariff",
-    icon: "💰",
+    icon: "🧾",
     route: "/admin/tariff",
     count: 6,
     color: "#FFD93D",
   },
-  { id: 4, name: "Collections", icon: "🅿️", route: "/admin/collections", count: 24, color: "#6C5CE7" },
+
+  {
+    id: 4,
+    name: "Parked Vehicles",
+    icon: "🅿️",
+    route: "/admin/parked",
+    count: 24,
+    color: "#6C5CE7",
+  },
+
   {
     id: 5,
+    name: "Collections",
+    icon: "💰",
+    route: "/admin/collections",
+    count: 24,
+    color: "#6C5CE7",
+  },
+
+  {
+    id: 6,
     name: "Vehicle Type",
     icon: "🚗",
     route: "/admin/vehicle-type",
@@ -57,21 +74,15 @@ export default function Details() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+    <View style={styles.container}>
+      <AdminHeader title="Management" subtitle="Manage your parking system" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Welcome Section - Simplified */}
-        <View style={styles.welcomeSection}>
-          <View>
-            <Text style={styles.welcomeTitle}>Dashboard</Text>
-            <Text style={styles.welcomeSubtitle}>
-              Manage your parking system
-            </Text>
-          </View>
+        {/* Stats Summary */}
+        <View style={styles.statsOverview}>
           <View style={styles.statsBadge}>
             <Text style={styles.statsBadgeText}>{totalItems} total items</Text>
           </View>
@@ -176,7 +187,7 @@ export default function Details() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -184,6 +195,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8f9fa",
+  },
+  statsOverview: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginBottom: 15,
   },
   scrollContent: {
     padding: 20,

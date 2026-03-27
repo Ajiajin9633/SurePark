@@ -1,6 +1,7 @@
 import { API_BASE_URL } from "@/services/api";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AdminHeader } from "@/components/AdminHeader";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -619,26 +620,22 @@ export default function Payments() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
-      <View style={styles.topSpacer} />
+      <AdminHeader title="Collections" subtitle="Staff Payment Collections"/>
 
-      {/* Header */}
-      <View style={styles.headerCard}>
-        <Text style={styles.headerTitle}>Payment Collection</Text>
-        <View style={styles.headerStats}>
-          <View style={styles.headerStat}>
-            <Text style={styles.headerStatValue}>
-              ₹{totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </Text>
-            <Text style={styles.headerStatLabel}>Pending</Text>
-          </View>
-          <View style={styles.headerDivider} />
-          <View style={styles.headerStat}>
-            <Text style={styles.headerStatValue}>
-              ₹{totalCollected.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </Text>
-            <Text style={styles.headerStatLabel}>Collected</Text>
-          </View>
+      {/* Header Stats */}
+      <View style={styles.headerStatsCard}>
+        <View style={styles.headerStat}>
+          <Text style={styles.headerStatValue}>
+            ₹{totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </Text>
+          <Text style={styles.headerStatLabel}>Total Pending</Text>
+        </View>
+        <View style={styles.headerDivider} />
+        <View style={styles.headerStat}>
+          <Text style={styles.headerStatValue}>
+            ₹{totalCollected.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </Text>
+          <Text style={styles.headerStatLabel}>Collected</Text>
         </View>
       </View>
 
@@ -1018,6 +1015,14 @@ const styles = StyleSheet.create({
 
   // Location expanded items
   locationsWrap: { borderTopWidth: 0.5, borderTopColor: '#f0f0f0' },
+  headerStatsCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   locItem: { padding: 14 },
   locItemBorder: { borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
   locHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
