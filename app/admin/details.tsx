@@ -38,7 +38,7 @@ const menuItems = [
     count: 6,
     color: "#FFD93D",
   },
-  { id: 4, name: "Parking Slots", icon: "🅿️", count: 24, color: "#6C5CE7" },
+  { id: 4, name: "Collections", icon: "🅿️", route: "/admin/collections", count: 24, color: "#6C5CE7" },
   {
     id: 5,
     name: "Vehicle Type",

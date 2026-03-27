@@ -76,6 +76,7 @@ export default function AdminLayout() {
       <Tabs.Screen name="staff" options={{ href: null }} />
       <Tabs.Screen name="tariff" options={{ href: null }} />
       <Tabs.Screen name="vehicle-type" options={{ href: null }} />
+      <Tabs.Screen name="collections" options={{ href: null }} />
     </Tabs>
   );
 }
