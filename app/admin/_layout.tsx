@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
@@ -54,7 +53,7 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="payments"
         options={{
-          title: "Payments",
+          title: "Collections",
         }}
       />
 
