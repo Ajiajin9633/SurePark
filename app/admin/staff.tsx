@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "../../services/api";
+import { AdminHeader } from "@/components/AdminHeader";
 
 type Location = {
   id: number;
@@ -238,22 +239,13 @@ export default function UserRegistration() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#d32f2f" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>Staff Management</Text>
-          <Text style={styles.headerSubtitle}>Manage parking staff</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <AdminHeader 
+        title="Staffs" 
+        subtitle="Staff Management" 
+        showBackButton={true}
+        onBack={() => router.replace("/admin/details")}
+      />
 
       {/* Tab Selector */}
       <View style={styles.tabContainer}>
@@ -465,7 +457,7 @@ export default function UserRegistration() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -516,7 +508,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#fff",
     marginHorizontal: 20,
-    marginTop: -15,
+    marginTop: 10,
     borderRadius: 12,
     padding: 4,
     elevation: 4,

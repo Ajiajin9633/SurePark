@@ -1709,35 +1709,22 @@ function ReportsSection() {
   );
 }
 
+import { AdminHeader } from "@/components/AdminHeader";
+
 // ─── Main Admin Dashboard ────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: () => router.replace("/") },
-    ]);
-  };
-
   return (
-    <SafeAreaView style={styles.mainContainer}>
+    <View style={styles.mainContainer}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar barStyle="light-content" backgroundColor="#DC2626" />
-
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>SafePark</Text>
-          <Text style={styles.headerSubtitle}>Admin Dashboard</Text>
-        </View>
-
-        <TouchableOpacity style={styles.headerLogout} onPress={handleLogout}>
-          <Text style={styles.headerLogoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+      <AdminHeader 
+        title="SafePark" 
+        subtitle="Admin Dashboard" 
+      />
 
       <View style={styles.content}>
         <ReportsSection />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

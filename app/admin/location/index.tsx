@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "../../../services/api";
+import { AdminHeader } from "@/components/AdminHeader";
 
 type Location = {
   id: number;
@@ -211,22 +212,13 @@ export default function LocationPage() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#d32f2f" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>Locations</Text>
-          <Text style={styles.headerSubtitle}>{locations.length} locations total</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <AdminHeader 
+        title="Locations" 
+        subtitle={`${locations.length} locations total`} 
+        showBackButton={true}
+        onBack={() => router.replace("/admin/details")}
+      />
 
       {/* Stats Card */}
       <View style={styles.statsCard}>
@@ -490,7 +482,7 @@ export default function LocationPage() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -541,7 +533,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     backgroundColor: "#fff",
     marginHorizontal: 20,
-    marginTop: -15,
+    marginTop: 5,
     borderRadius: 15,
     padding: 15,
     elevation: 4,
