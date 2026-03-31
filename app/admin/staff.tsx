@@ -19,7 +19,7 @@ import {
     View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { API_BASE_URL } from "../../services/api";
+import { apiFetch } from "../../services/api";
 import { AdminHeader } from "@/components/AdminHeader";
 
 type Location = {
@@ -61,7 +61,7 @@ export default function UserRegistration() {
 
   const fetchLocations = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/location`);
+      const response = await apiFetch('/location');
       const data = await response.json();
       setLocations(data);
     } catch (error) {
@@ -73,7 +73,7 @@ export default function UserRegistration() {
 
   const fetchStaff = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/staff/list`);
+      const response = await apiFetch('/staff/list');
       const data = await response.json();
       
       // Enrich staff data with location names
@@ -121,7 +121,7 @@ export default function UserRegistration() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/Staff/register`, {
+      const response = await apiFetch('/Staff/register', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +173,7 @@ export default function UserRegistration() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+              const response = await apiFetch(`/users/${id}`, {
                 method: "DELETE",
               });
 

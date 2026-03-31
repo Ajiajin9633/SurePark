@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/services/api";
+import { API_BASE_URL, apiFetch } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import {
@@ -69,8 +69,8 @@ export default function EntryTab() {
       setUser(parsedUser);
       await fetchVehicleTypes(parsedUser.userId);
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/Parking/TodaySummary/${parsedUser.userId}`,
+        const response = await apiFetch(
+          `/Parking/TodaySummary/${parsedUser.userId}`,
         );
         if (response.ok) {
           const data = await response.json();
@@ -91,8 +91,8 @@ export default function EntryTab() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `${API_BASE_URL}/Parking/VehicleTypesForLocation/${userId}`,
+      const response = await apiFetch(
+        `/Parking/VehicleTypesForLocation/${userId}`,
       );
 
       if (!response.ok) {
@@ -256,7 +256,7 @@ export default function EntryTab() {
     console.log("API Payload:", JSON.stringify(apiPayload));
 
     try {
-      const response = await fetch(`${API_BASE_URL}/Parking/CheckIn`, {
+      const response = await apiFetch(`/Parking/CheckIn`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -18,7 +18,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { API_BASE_URL } from "../../services/api";
+import { apiFetch } from "../../services/api";
 import { AdminHeader } from "@/components/AdminHeader";
 
 type Location = {
@@ -105,7 +105,7 @@ export default function TariffPage() {
 
   const fetchLocations = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/location`);
+      const response = await apiFetch('/location');
       const data = await response.json();
       setLocations(data);
     } catch (error) {
@@ -117,7 +117,7 @@ export default function TariffPage() {
 
   const fetchVehicleTypes = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/VehicleTypes/list`);
+      const response = await apiFetch('/VehicleTypes/list');
       const data = await response.json();
       setVehicleTypes(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -130,7 +130,7 @@ export default function TariffPage() {
 
   const fetchTariffs = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/tariff/list`);
+      const response = await apiFetch('/tariff/list');
       const data = await response.json();
 
       // Enrich tariff data with location names
@@ -369,7 +369,7 @@ export default function TariffPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/tariff/create`, {
+      const response = await apiFetch('/tariff/create', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -417,8 +417,8 @@ export default function TariffPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/tariff/${editingTariff.id}`,
+      const response = await apiFetch(
+        `/tariff/${editingTariff.id}`,
         {
           method: "PUT",
           headers: {
@@ -473,8 +473,8 @@ export default function TariffPage() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(
-                `${API_BASE_URL}/tariff/${tariff.vehicleTypeId}/${tariff.locationId}`,
+              const response = await apiFetch(
+                `/tariff/${tariff.vehicleTypeId}/${tariff.locationId}`,
                 {
                   method: "DELETE",
                 },

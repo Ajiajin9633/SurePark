@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/services/api";
+import { API_BASE_URL, apiFetch } from "@/services/api";
 import { Stack, router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -1338,8 +1338,8 @@ function DateRangeReportComponent() {
       setLoading(true);
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
-      const response = await fetch(
-        `${API_BASE_URL}/Reports/DateRange?startDate=${startDateStr}&endDate=${endDateStr}`
+      const response = await apiFetch(
+        `/Reports/DateRange?startDate=${startDateStr}&endDate=${endDateStr}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -1594,7 +1594,7 @@ function ReportsSection() {
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/Reports/Dashboard`);
+      const response = await apiFetch(`/Reports/Dashboard`);
       if (response.ok) {
         const data = await response.json();
         setDashboardStats(data);
@@ -1606,7 +1606,7 @@ function ReportsSection() {
 
   const fetchWeeklyActivity = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/Reports/WeeklyActivity`);
+      const response = await apiFetch(`/Reports/WeeklyActivity`);
       if (response.ok) {
         const data = await response.json();
         setWeeklyActivity(data);
@@ -1618,7 +1618,7 @@ function ReportsSection() {
 
   const fetchLocationReports = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/Reports/LocationWise`);
+      const response = await apiFetch(`/Reports/LocationWise`);
       if (response.ok) {
         const data = await response.json();
         setLocationReports(data);
@@ -1630,7 +1630,7 @@ function ReportsSection() {
 
   const fetchStaffReports = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/Reports/StaffWise`);
+      const response = await apiFetch(`/Reports/StaffWise`);
       if (response.ok) {
         const data = await response.json();
         setStaffReports(data);
@@ -1642,7 +1642,7 @@ function ReportsSection() {
 
   const fetchVehicleTypeReports = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/Reports/VehicleTypeWise`);
+      const response = await apiFetch(`/Reports/VehicleTypeWise`);
       if (response.ok) {
         const data = await response.json();
         setVehicleTypeReports(data);

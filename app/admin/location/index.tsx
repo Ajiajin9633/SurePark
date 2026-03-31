@@ -1,25 +1,23 @@
+import { AdminHeader } from "@/components/AdminHeader";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { API_BASE_URL } from "../../../services/api";
-import { AdminHeader } from "@/components/AdminHeader";
+import { apiFetch } from "../../../services/api";
 
 type Location = {
   id: number;
@@ -31,7 +29,9 @@ export default function LocationPage() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(
+    null,
+  );
   const [newLocationName, setNewLocationName] = useState("");
   const [newLocationCapacity, setNewLocationCapacity] = useState("");
   const [editLocationName, setEditLocationName] = useState("");
@@ -46,7 +46,7 @@ export default function LocationPage() {
 
   const loadLocations = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/location`);
+      const res = await apiFetch("/location");
       const data = await res.json();
       setLocations(data);
     } catch (error) {
@@ -68,14 +68,14 @@ export default function LocationPage() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/location`, {
+      const response = await apiFetch("/location", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           name: newLocationName,
-          capacity: newLocationCapacity 
+          capacity: newLocationCapacity,
         }),
       });
 
@@ -107,22 +107,24 @@ export default function LocationPage() {
 
     setEditLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/location/${selectedLocation.id}`, {
+      const response = await apiFetch(`/location/${selectedLocation.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           name: editLocationName,
-          capacity: editLocationCapacity 
+          capacity: editLocationCapacity,
         }),
       });
 
       if (response.ok) {
         const updatedLocation = await response.json();
-        setLocations(locations.map(loc => 
-          loc.id === selectedLocation.id ? updatedLocation : loc
-        ));
+        setLocations(
+          locations.map((loc) =>
+            loc.id === selectedLocation.id ? updatedLocation : loc,
+          ),
+        );
         setEditModalVisible(false);
         setSelectedLocation(null);
         setEditLocationName("");
@@ -150,12 +152,12 @@ export default function LocationPage() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(`${API_BASE_URL}/location/${id}`, {
+              const response = await apiFetch(`/location/${id}`, {
                 method: "DELETE",
               });
 
               if (response.ok) {
-                setLocations(locations.filter(loc => loc.id !== id));
+                setLocations(locations.filter((loc) => loc.id !== id));
                 Alert.alert("Success", "Location deleted successfully");
               } else {
                 Alert.alert("Error", "Failed to delete location");
@@ -163,9 +165,9 @@ export default function LocationPage() {
             } catch (error) {
               Alert.alert("Error", "Network error occurred");
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -195,13 +197,13 @@ export default function LocationPage() {
         </View>
       </View>
       <View style={styles.actionButtons}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.editButton}
           onPress={() => openEditModal(item)}
         >
           <Text style={styles.editIcon}>✏️</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => handleDeleteLocation(item.id)}
         >
@@ -213,9 +215,9 @@ export default function LocationPage() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader 
-        title="Locations" 
-        subtitle={`${locations.length} locations total`} 
+      <AdminHeader
+        title="Locations"
+        subtitle={`${locations.length} locations total`}
         showBackButton={true}
         onBack={() => router.replace("/admin/details")}
       />
@@ -229,7 +231,7 @@ export default function LocationPage() {
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statValue}>
-            {locations.filter(l => l.name?.length > 0).length}
+            {locations.filter((l) => l.name?.length > 0).length}
           </Text>
           <Text style={styles.statLabel}>Active</Text>
         </View>
@@ -281,7 +283,7 @@ export default function LocationPage() {
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Add New Location</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => {
                       setModalVisible(false);
                       setNewLocationName("");
@@ -294,13 +296,13 @@ export default function LocationPage() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView 
+                <ScrollView
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                 >
                   <View style={styles.modalBody}>
                     <View style={styles.inputContainer}>
-                      <View style={{flexDirection:"row"}}>
+                      <View style={{ flexDirection: "row" }}>
                         <Text style={styles.inputLabel}>Location Name</Text>
                         <Text style={styles.requiredStar}> *</Text>
                       </View>
@@ -324,7 +326,7 @@ export default function LocationPage() {
                         <Text style={styles.inputIcon}>👥</Text>
                         <TextInput
                           style={styles.input}
-                          placeholder="Enter capacity (optional)"
+                          placeholder="Enter capacity"
                           placeholderTextColor="#999"
                           value={newLocationCapacity}
                           onChangeText={setNewLocationCapacity}
@@ -349,7 +351,10 @@ export default function LocationPage() {
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                        style={[
+                          styles.submitButton,
+                          loading && styles.submitButtonDisabled,
+                        ]}
                         onPress={handleAddLocation}
                         disabled={loading}
                       >
@@ -358,7 +363,9 @@ export default function LocationPage() {
                         ) : (
                           <>
                             <Text style={styles.submitButtonIcon}>✓</Text>
-                            <Text style={styles.submitButtonText}>Add Location</Text>
+                            <Text style={styles.submitButtonText}>
+                              Add Location
+                            </Text>
                           </>
                         )}
                       </TouchableOpacity>
@@ -391,7 +398,7 @@ export default function LocationPage() {
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Edit Location</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => {
                       setEditModalVisible(false);
                       setSelectedLocation(null);
@@ -405,13 +412,13 @@ export default function LocationPage() {
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView 
+                <ScrollView
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                 >
                   <View style={styles.modalBody}>
                     <View style={styles.inputContainer}>
-                      <View style={{flexDirection:"row"}}>
+                      <View style={{ flexDirection: "row" }}>
                         <Text style={styles.inputLabel}>Location Name</Text>
                         <Text style={styles.requiredStar}> *</Text>
                       </View>
@@ -435,7 +442,7 @@ export default function LocationPage() {
                         <Text style={styles.inputIcon}>👥</Text>
                         <TextInput
                           style={styles.input}
-                          placeholder="Enter capacity (optional)"
+                          placeholder="Enter capacity"
                           placeholderTextColor="#999"
                           value={editLocationCapacity}
                           onChangeText={setEditLocationCapacity}
@@ -461,7 +468,10 @@ export default function LocationPage() {
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={[styles.submitButton, editLoading && styles.submitButtonDisabled]}
+                        style={[
+                          styles.submitButton,
+                          editLoading && styles.submitButtonDisabled,
+                        ]}
                         onPress={handleEditLocation}
                         disabled={editLoading}
                       >
@@ -470,7 +480,9 @@ export default function LocationPage() {
                         ) : (
                           <>
                             <Text style={styles.submitButtonIcon}>✓</Text>
-                            <Text style={styles.submitButtonText}>Update Location</Text>
+                            <Text style={styles.submitButtonText}>
+                              Update Location
+                            </Text>
                           </>
                         )}
                       </TouchableOpacity>

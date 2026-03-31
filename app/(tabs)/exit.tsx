@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/services/api";
+import { apiFetch } from "@/services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 import {
@@ -99,8 +99,8 @@ export default function ExitTab() {
         return;
       }
 
-      const url = `${API_BASE_URL}/Parking/ActiveVehicles/${userId}`;
-      const response = await fetch(url);
+      const url = `/Parking/ActiveVehicles/${userId}`;
+      const response = await apiFetch(url);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch vehicles: ${response.status}`);
@@ -182,8 +182,8 @@ export default function ExitTab() {
       const user = JSON.parse(storedUser);
       const userId = user.userId || user.id;
 
-      const response = await fetch(
-        `${API_BASE_URL}/Parking/exit-preview/${vehicleId}/${userId}`
+      const response = await apiFetch(
+        `/Parking/exit-preview/${vehicleId}/${userId}`
       );
 
       const data = await response.json();
@@ -279,8 +279,8 @@ export default function ExitTab() {
         requestBody.manualRefundAmount = refundAmount || 0;
       }
 
-      const response = await fetch(
-        `${API_BASE_URL}/Parking/CheckOut/${exitPreview.vehicleId}`,
+      const response = await apiFetch(
+        `/Parking/CheckOut/${exitPreview.vehicleId}`,
         {
           method: "POST",
           headers: {

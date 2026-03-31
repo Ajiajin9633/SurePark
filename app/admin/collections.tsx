@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/services/api";
+import { API_BASE_URL, apiFetch } from "@/services/api";
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from "react";
@@ -58,8 +58,8 @@ export default function Reports() {
   const loadReports = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${API_BASE_URL}/Reports/collection-report?month=${selectedMonth}&year=${selectedYear}`
+      const response = await apiFetch(
+        `/Reports/collection-report?month=${selectedMonth}&year=${selectedYear}`
       );
       
       if (response.ok) {

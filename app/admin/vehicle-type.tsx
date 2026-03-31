@@ -16,7 +16,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { API_BASE_URL } from "../../services/api";
+import { apiFetch } from "../../services/api";
 import { AdminHeader } from "@/components/AdminHeader";
 
 type VehicleType = {
@@ -50,7 +50,7 @@ export default function VehicleTypeManagement() {
 
   const fetchVehicleTypes = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/VehicleTypes/list`);
+      const response = await apiFetch('/VehicleTypes/list');
       if (!response.ok) throw new Error("Server error");
       const data = await response.json();
       setVehicleTypes(Array.isArray(data) ? data : []);
@@ -81,7 +81,7 @@ export default function VehicleTypeManagement() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/VehicleTypes/create`, {
+      const response = await apiFetch('/VehicleTypes/create', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,8 +127,8 @@ export default function VehicleTypeManagement() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(
-                `${API_BASE_URL}/VehicleTypes/${id}`,
+              const response = await apiFetch(
+                `/VehicleTypes/${id}`,
                 {
                   method: "DELETE",
                 },

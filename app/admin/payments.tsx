@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "@/services/api";
+import { API_BASE_URL, apiFetch } from "@/services/api";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AdminHeader } from "@/components/AdminHeader";
@@ -406,7 +406,7 @@ export default function Payments() {
   const loadPendingCollections = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/PaymentCollection/Pending`);
+      const response = await apiFetch('/PaymentCollection/Pending');
       if (response.ok) {
         const data: PendingCollection[] = await response.json();
         setPendingCollections(data);
@@ -425,8 +425,8 @@ export default function Payments() {
   const loadCollectionHistory = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${API_BASE_URL}/PaymentCollection/History?month=${selectedMonth + 1}&year=${selectedYear}`
+      const response = await apiFetch(
+        `/PaymentCollection/History?month=${selectedMonth + 1}&year=${selectedYear}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -483,8 +483,8 @@ export default function Payments() {
   const loadCollectionDetails = async (staffId: number, locationId: number) => {
     try {
       setLoadingDetails(true);
-      const response = await fetch(
-        `${API_BASE_URL}/PaymentCollection/Details/${staffId}/${locationId}`
+      const response = await apiFetch(
+        `/PaymentCollection/Details/${staffId}/${locationId}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -547,7 +547,7 @@ export default function Payments() {
                 if (deductionReason.trim()) requestBody.deductionReason = deductionReason.trim();
               }
 
-              const response = await fetch(`${API_BASE_URL}/PaymentCollection/Collect`, {
+              const response = await apiFetch('/PaymentCollection/Collect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody),

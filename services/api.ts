@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
-export const API_BASE_URL = "http://10.172.75.224:5123/api";
+export const API_BASE_URL = "http://10.144.68.224:5123/api";
 // 🔥 Common API function
 
 export const apiFetch = async (endpoint: string, options: any = {}) => {
@@ -11,6 +11,7 @@ export const apiFetch = async (endpoint: string, options: any = {}) => {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
