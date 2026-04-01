@@ -64,6 +64,14 @@ const menuItems = [
     count: 5,
     color: "#FF9F43",
   },
+    {
+    id: 7,
+    name: "Manager",
+    icon: "👔",
+    route: "/admin/manager",
+    count: 0,
+    color: "#00B894",
+  },
 ];
 
 export default function Details() {
