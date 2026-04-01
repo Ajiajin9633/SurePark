@@ -65,7 +65,7 @@ export default function Login() {
       setMessage("Login Successful ✅");
 
       // Redirect based on role
-      if (data.role === "Admin") {
+      if (data.role === "Admin" || data.role ==="Manager") {
         router.replace("/admin/reports");
       } else {
         router.replace("/(tabs)/dashboard");
