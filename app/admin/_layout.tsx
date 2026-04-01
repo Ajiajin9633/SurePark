@@ -87,6 +87,7 @@ export default function AdminLayout() {
       <Tabs.Screen name="vehicle-type" options={{ href: null }} />
       <Tabs.Screen name="parked" options={{ href: null }} />
       <Tabs.Screen name="collections" options={{ href: null }} />
+      <Tabs.Screen name="manager" options={{ href: null }} />
     </Tabs>
   );
 }
